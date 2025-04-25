@@ -1,10 +1,11 @@
 import { Movement } from '../models/movement.js'
 import { Category } from '../models/category.js'
+import { Op } from 'sequelize'
 
 export const getAllMovements = async (req, res) => {
   try {
     const movements = await Movement.findAll({
-      include: [Category] ,
+      include: [Category],
       order: [['createdAt', 'DESC']]
     })
     res.json(movements)
@@ -43,6 +44,26 @@ export const getBalance = async (req, res) => {
     const balance = totalIngreso - totalGasto
     res.json({ balance, totalIngreso, totalGasto })
 
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+export const getByDate = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query
+
+    const movements = await Movement.findAll({
+      where: {
+        date: {
+          [Op.between]: [new Date(startDate), new Date(endDate)]
+        }
+      },
+      include: [Category],
+      order: [['date', 'ASC']]
+    })
+
+    res.json(movements)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
