@@ -38,8 +38,23 @@ export const createMovement = async (req, res) => {
 
 export const getBalance = async (req, res) => {
   try {
-    const totalIngreso = await Movement.sum('amount', { where: { type: 'ingreso' } })
-    const totalGasto = await Movement.sum('amount', { where: { type: 'gasto' } })
+    const { startDate, endDate } = req.query
+    const totalIngreso = await Movement.sum('amount', {
+      where: {
+        type: 'ingreso',
+        date: {
+          [Op.between]: [new Date(startDate), new Date(endDate)]
+        }
+      }
+    })
+    const totalGasto = await Movement.sum('amount', {
+      where: {
+        type: 'gasto',
+        date: {
+          [Op.between]: [new Date(startDate), new Date(endDate)]
+        }
+      }
+    })
 
     const balance = totalIngreso - totalGasto
     res.json({ balance, totalIngreso, totalGasto })
@@ -60,7 +75,7 @@ export const getByDate = async (req, res) => {
         }
       },
       include: [Category],
-      order: [['date', 'ASC']]
+      order: [['createdAt', 'DESC']]
     })
 
     res.json(movements)
