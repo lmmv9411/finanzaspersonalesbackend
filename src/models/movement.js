@@ -1,6 +1,6 @@
 import { DataTypes } from 'sequelize'
-import { sequelize } from './index.js'
 import { Category } from './category.js'
+import { sequelize } from './index.js'
 
 export const Movement = sequelize.define('Movement',
     {
@@ -28,5 +28,12 @@ export const Movement = sequelize.define('Movement',
 )
 
 // Relación entre Movement y Category
-Movement.belongsTo(Category)  // Cada movimiento está asociado a una categoría
-Category.hasMany(Movement)   // Una categoría puede tener muchos movimientos
+Movement.belongsTo(Category, {
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE'
+})  // Cada movimiento está asociado a una categoría
+
+Category.hasMany(Movement, {
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE'
+})   // Una categoría puede tener muchos movimientos
