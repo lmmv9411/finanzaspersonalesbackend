@@ -14,6 +14,23 @@ export const getAllMovements = async (req, res) => {
   }
 }
 
+export const deleteMovement = async (req, res) => {
+  try {
+
+    const { id } = req.params
+    const movement = await Movement.findByPk(id)
+
+    if (!movement) {
+      return res.status(404).json({ error: 'Movement not found' });
+    }
+
+    await movement.destroy();
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export const createMovement = async (req, res) => {
   try {
     const { type, amount, description, CategoryId } = req.body
