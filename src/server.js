@@ -14,6 +14,10 @@ import authRoute from './routes/authRoute.js'
 
 dotenv.config()
 
+if (!process.env.SECRET_KEY) {
+    throw new Error('SECRET_KEY no está definida en las variables de entorno');
+}
+
 const app = express()
 
 app.use(cors({
