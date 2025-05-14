@@ -8,6 +8,8 @@ import categoryRoutes from './routes/categoryRoutes.js'
 import expenseRoutes from './routes/expenseRoutes.js'
 import movementRoutes from './routes/movementRoutes.js'
 import statsRoutes from './routes/statsRoutes.js'
+import userRouter from './routes/userRoutes.js'
+import cookieParser from 'cookie-parser'
 
 dotenv.config()
 
@@ -15,11 +17,13 @@ const app = express()
 
 app.use(cors())
 app.use(express.json())
+app.use(cookieParser())
 
 app.use('/api/expenses', expenseRoutes)
 app.use('/api/movements', movementRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/stats', statsRoutes)
+app.use('/api/user', userRouter)
 
 const _dirname = path.dirname(fileURLToPath(import.meta.url))
 

@@ -1,7 +1,10 @@
 import express from 'express';
 import { getAllCategories, createCategory, getCategoryById, deleteCategory, updateCategory } from '../controllers/categoryController.js';
+import { auth } from '../middlewares/auth.js';
 
 const router = express.Router();
+
+router.use(auth)
 
 router.get('/', getAllCategories);  // Obtener todas las categorías
 router.post('/', createCategory);  // Crear una nueva categoría

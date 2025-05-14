@@ -1,7 +1,10 @@
 import express from 'express'
 import { getAllMovements, createMovement, getBalance, getByDate, deleteMovement } from '../controllers/movementController.js'
+import { auth } from '../middlewares/auth.js'
 
 const router = express.Router()
+
+router.use(auth)
 
 router.get('/', getAllMovements)  // Obtener todos los movimientos
 router.post('/', createMovement)  // Crear un nuevo movimiento

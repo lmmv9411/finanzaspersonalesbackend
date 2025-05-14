@@ -1,9 +1,12 @@
 import express from 'express'
 
 import { getTotalByCategory } from '../controllers/statsController.js'
+import { auth } from '../middlewares/auth.js'
 
 const router = express.Router()
 
-router.get('/totalByCategory', getTotalByCategory)  // Obtener total por categoría
+router.use(auth)
+
+router.get('/totalByCategory', getTotalByCategory)
 
 export default router
