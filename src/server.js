@@ -14,16 +14,6 @@ import authRoute from './routes/authRoute.js'
 
 dotenv.config()
 
-if (process.env.DB_NAME) {
-    console.log(process.env.DB_NAME);
-}
-
-
-if (process.env.SECRET_KEY) {
-    console.log(process.env.SECRET_KEY);
-}
-
-
 const app = express()
 
 app.use(cors({

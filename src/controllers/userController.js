@@ -1,6 +1,9 @@
 import jwt from "jsonwebtoken"
 import bcrypt from "bcryptjs";
 import { User } from "../models/user.js";
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 export const register = async (req, res) => {
     const { user, name, lastName, password } = req.body;
@@ -44,7 +47,7 @@ export const login = async (req, res) => {
             maxAge: 24 * 60 * 60 * 1000
         })
 
-        res.json({message: 'Login Successful'})
+        res.json({ message: 'Login Successful' })
 
     } catch (error) {
         res.status(500).json({ error: error.message })
