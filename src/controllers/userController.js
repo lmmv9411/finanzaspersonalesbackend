@@ -30,7 +30,8 @@ export const login = async (req, res) => {
             {
                 id: userDB.id,
                 user: userDB.user,
-                name: userDB.name
+                name: userDB.name,
+                lastName: user.lastName
             },
             process.env.SECRET_KEY, {
             expiresIn: '30d',

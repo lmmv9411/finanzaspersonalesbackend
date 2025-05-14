@@ -10,29 +10,33 @@ import movementRoutes from './routes/movementRoutes.js'
 import statsRoutes from './routes/statsRoutes.js'
 import userRouter from './routes/userRoutes.js'
 import cookieParser from 'cookie-parser'
+import authRoute from './routes/authRoute.js'
 
 dotenv.config()
 
 const app = express()
 
-app.use(cors())
+app.use(cors({
+    origin: 'http://localhost:5173', // el origen exacto del frontend
+    credentials: true, // permite enviar cookies
+}))
 app.use(express.json())
 app.use(cookieParser())
+
+const _dirname = path.dirname(fileURLToPath(import.meta.url))
+
+app.use(express.static(path.join(_dirname, 'public')))
 
 app.use('/api/expenses', expenseRoutes)
 app.use('/api/movements', movementRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/stats', statsRoutes)
 app.use('/api/user', userRouter)
-
-const _dirname = path.dirname(fileURLToPath(import.meta.url))
-
-app.use(express.static(path.join(_dirname, 'public')))
+app.use('/api/auth', authRoute)
 
 app.get(/\/(.*)/, (req, res) => {
     res.sendFile(path.join(_dirname, 'public', 'index.html'))
 });
-
 
 const startServer = async () => {
     await testConnection()
