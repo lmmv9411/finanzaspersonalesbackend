@@ -37,15 +37,28 @@ export const login = async (req, res) => {
             expiresIn: '30d',
         });
 
-        res.cookie('sesion', token, {
+        /*res.cookie('sesion', token, {
             httpOnly: true,
             secure: false,
             sameSite: 'strict',
             maxAge: 24 * 60 * 60 * 1000
+        })*/
+
+        res.json({ token })
+
+    } catch (error) {
+        res.status(500).json({ error: error.message })
+    }
+}
+
+export const logout = async (req, res) => {
+    try {
+        res.clearCookie('sesion', {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'strict'
         })
-
-        res.json({ message: 'Login Successful' })
-
+        res.json({ message: 'Sesion cerrada' })
     } catch (error) {
         res.status(500).json({ error: error.message })
     }
@@ -64,6 +77,6 @@ export const getByUser = async (req, res) => {
         res.json({ user: userDB })
 
     } catch (error) {
-        res.status(500).json({ error })
+        res.status(500).json({ error: error.message })
     }
 }

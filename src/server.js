@@ -16,8 +16,22 @@ dotenv.config()
 
 const app = express()
 
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://192.168.1.27:5173'
+];
+
 app.use(cors({
-    origin: 'http://localhost:5173', // el origen exacto del frontend
+    origin: (origin, callback) => {
+        // Permitir solicitudes sin origen (por ejemplo, curl o Postman)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        } else {
+            return callback(new Error('No permitido por CORS'));
+        }
+    },
     credentials: true, // permite enviar cookies
 }))
 app.use(express.json())
