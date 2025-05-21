@@ -65,9 +65,13 @@ export const createMovement = async (req, res) => {
 
 
 export const getBalance = async (req, res) => {
+
   try {
+
     const UserId = req.user.id;
+
     const { startDate, endDate } = req.query
+
     const totalIngreso = await Movement.sum('amount', {
       where: {
         UserId,
@@ -77,6 +81,7 @@ export const getBalance = async (req, res) => {
         }
       }
     })
+
     const totalGasto = await Movement.sum('amount', {
       where: {
         UserId,

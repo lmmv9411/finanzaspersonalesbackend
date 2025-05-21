@@ -5,7 +5,6 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { sequelize, testConnection } from './models/index.js'
 import categoryRoutes from './routes/categoryRoutes.js'
-import expenseRoutes from './routes/expenseRoutes.js'
 import movementRoutes from './routes/movementRoutes.js'
 import statsRoutes from './routes/statsRoutes.js'
 import userRouter from './routes/userRoutes.js'
@@ -16,12 +15,14 @@ dotenv.config()
 
 const app = express()
 
-/*const allowedOrigins = [
+const allowedOrigins = [
     'http://localhost:5173',
-    'http://192.168.1.27:5173'
+    'http://192.168.1.66:5173',
+    'http://localhost:3000',
+    'http://192.168.1.66:3000'
 ];
-*/
-app.use(cors(/*{
+
+app.use(cors({
     origin: (origin, callback) => {
         // Permitir solicitudes sin origen (por ejemplo, curl o Postman)
         if (!origin) return callback(null, true);
@@ -33,7 +34,7 @@ app.use(cors(/*{
         }
     },
     credentials: true, // permite enviar cookies
-}*/))
+}))
 app.use(express.json())
 app.use(cookieParser())
 
@@ -41,7 +42,6 @@ const _dirname = path.dirname(fileURLToPath(import.meta.url))
 
 app.use(express.static(path.join(_dirname, 'public')))
 
-app.use('/api/expenses', expenseRoutes)
 app.use('/api/movements', movementRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/stats', statsRoutes)
