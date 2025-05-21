@@ -6,6 +6,7 @@ import { sequelize } from "../models/index.js"
 export const getTotalByCategory = async (req, res) => {
     try {
         const { startDate, endDate } = req.query
+        const UserId = req.user.id;
 
         const totalByCategory = await Movement.findAll({
             attributes: [
@@ -13,6 +14,7 @@ export const getTotalByCategory = async (req, res) => {
                 [sequelize.fn('SUM', sequelize.col('amount')), 'total']
             ],
             where: {
+                UserId,
                 date: {
                     [Op.between]: [new Date(startDate), new Date(endDate)]
                 }

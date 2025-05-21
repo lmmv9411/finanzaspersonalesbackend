@@ -1,5 +1,6 @@
 import { DataTypes } from 'sequelize'
 import { sequelize } from './index.js'
+import { User } from './user.js'
 
 export const Category = sequelize.define('Category',
     {
@@ -12,3 +13,12 @@ export const Category = sequelize.define('Category',
         timestamps: true
     }
 )
+
+User.hasMany(Category, {
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE'
+})
+Category.belongsTo(User, {
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE'
+})
