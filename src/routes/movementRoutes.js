@@ -1,15 +1,23 @@
+import {
+    createMovement,
+    deleteMovement,
+    getAllMovements,
+    getBalance,
+    getByDate,
+    updateMovement
+} from '../controllers/movementController.js'
 import express from 'express'
-import { getAllMovements, createMovement, getBalance, getByDate, deleteMovement } from '../controllers/movementController.js'
 import { auth } from '../middlewares/auth.js'
 
 const router = express.Router()
 
 router.use(auth)
 
-router.get('/', getAllMovements)  // Obtener todos los movimientos
-router.post('/', createMovement)  // Crear un nuevo movimiento
-router.get('/balance', getBalance)  // Obtener el balance total
-router.get('/date', getByDate)  // Obtener movimientos por fecha
+router.get('/', getAllMovements)
+router.post('/', createMovement)
+router.get('/balance', getBalance)
+router.get('/date', getByDate)
 router.delete('/:id', deleteMovement)
+router.put('/:id', updateMovement)
 
 export default router

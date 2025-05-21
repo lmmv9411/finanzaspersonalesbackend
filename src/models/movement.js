@@ -1,6 +1,7 @@
 import { DataTypes } from 'sequelize'
 import { Category } from './category.js'
 import { sequelize } from './index.js'
+import { User } from './user.js'
 
 export const Movement = sequelize.define('Movement',
     {
@@ -37,3 +38,13 @@ Category.hasMany(Movement, {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE'
 })   // Una categoría puede tener muchos movimientos
+
+Movement.belongsTo(User, {
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE'
+})
+
+User.hasMany(Movement, {
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE'
+})
