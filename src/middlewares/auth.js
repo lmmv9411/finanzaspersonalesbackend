@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 
 const SECRET_KEY = process.env.SECRET_KEY
 
@@ -34,9 +34,8 @@ export const auth = (req, res, next) => {
     }
 
     try {
-        // Verifica el token
         const decoded = jwt.verify(token, SECRET_KEY);
-        req.user = decoded; // puedes acceder luego a req.user
+        req.user = decoded;
         next();
     } catch (err) {
         return res.status(403).json({ message: 'Invalid or expired token' });

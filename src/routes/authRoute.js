@@ -3,8 +3,8 @@ import { auth } from '../middlewares/auth.js'
 
 const router = express.Router()
 
-router.get('/check', auth, (req, res) => {
-    res.json({ ok: true, user: req.user })
+router.get('/check', auth, (_, res) => {
+    res.json({ ok: true })
 })
 
 export default router

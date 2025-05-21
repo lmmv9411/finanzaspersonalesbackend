@@ -1,5 +1,5 @@
-import jwt from "jsonwebtoken"
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { User } from "../models/user.js";
 
 export const register = async (req, res) => {
@@ -28,10 +28,9 @@ export const login = async (req, res) => {
 
         const token = jwt.sign(
             {
-                id: userDB.id,
                 user: userDB.user,
                 name: userDB.name,
-                lastName: user.lastName
+                lastName: userDB.lastName,
             },
             process.env.SECRET_KEY, {
             expiresIn: '30d',
@@ -64,18 +63,9 @@ export const logout = async (req, res) => {
     }
 }
 
-export const getByUser = async (req, res) => {
+export const getUser = async (req, res) => {
     try {
-        const { user } = req.query
-
-        if (!user) return res.status(400).json({ error: "Campo 'user' vacío" })
-
-        const userDB = await User.findOne({ where: user })
-
-        if (!userDB) return res.status(400).json({ error: 'Usuario no encontrado' });
-
-        res.json({ user: userDB })
-
+        res.json(req.user);
     } catch (error) {
         res.status(500).json({ error: error.message })
     }
