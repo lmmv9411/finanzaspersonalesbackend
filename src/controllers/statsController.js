@@ -8,7 +8,7 @@ export const getTotalByCategory = async (req, res) => {
         const { startDate, endDate } = req.query
         const UserId = req.user.id;
 
-        const totalByCategory = await Movement.findAll({
+        const totalGastoByCategory = await Movement.findAll({
             attributes: [
                 'CategoryId',
                 [sequelize.fn('SUM', sequelize.col('amount')), 'total']
@@ -17,7 +17,8 @@ export const getTotalByCategory = async (req, res) => {
                 UserId,
                 date: {
                     [Op.between]: [new Date(startDate), new Date(endDate)]
-                }
+                },
+                type: 'gasto'
             },
             group: ['CategoryId'],
             include: {
@@ -26,7 +27,26 @@ export const getTotalByCategory = async (req, res) => {
             }
         })
 
-        res.json(totalByCategory)
+        const totalIngresoByCategory = await Movement.findAll({
+            attributes: [
+                'CategoryId',
+                [sequelize.fn('SUM', sequelize.col('amount')), 'total']
+            ],
+            where: {
+                UserId,
+                date: {
+                    [Op.between]: [new Date(startDate), new Date(endDate)]
+                },
+                type: 'ingreso'
+            },
+            group: ['CategoryId'],
+            include: {
+                model: Category,
+                attributes: ['name']
+            }
+        })
+
+        res.json({ totalGastoByCategory, totalIngresoByCategory })
     } catch (error) {
         res.status(500).json({ error: error.message })
     }
