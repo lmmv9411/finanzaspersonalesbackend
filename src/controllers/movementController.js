@@ -63,7 +63,6 @@ export const createMovement = async (req, res) => {
   }
 }
 
-
 export const getBalance = async (req, res) => {
 
   try {
@@ -125,7 +124,7 @@ export const getByDate = async (req, res) => {
 export const updateMovement = async (req, res) => {
   try {
     const { id } = req.params
-    const { type, amount, description, CategoryId } = req.body
+    const { type, amount, description, CategoryId, date } = req.body
     const UserId = req.user.id
 
     // Buscar el movimiento y asegurarse de que pertenece al usuario
@@ -153,7 +152,8 @@ export const updateMovement = async (req, res) => {
       type: type ?? movement.type,
       amount: amount ?? movement.amount,
       description: description ?? movement.description,
-      CategoryId: CategoryId ?? movement.CategoryId
+      CategoryId: CategoryId ?? movement.CategoryId,
+      date: date ?? movement.date
     })
 
     res.status(200).json(movement)
