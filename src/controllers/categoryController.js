@@ -48,6 +48,11 @@ export const deleteCategory = async (req, res) => {
         await category.destroy();
         res.status(204).send();
     } catch (error) {
+        if (error.name === 'SequelizeForeignKeyConstraintError') {
+            return res.status(409).json({
+                error: 'No se puede eliminar categoria por que otras entidades depende de esta.'
+            });
+        }
         res.status(500).json({ error: error.message });
     }
 }
