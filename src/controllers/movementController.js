@@ -113,23 +113,52 @@ export const getByDate = async (req, res) => {
   try {
     const UserId = req.user.id;
     const { startDate, endDate } = req.query
+    let { page, pageSize } = req.query
 
-    if (!startDate.trim() || !endDate.trim()) {
+    if (!startDate?.trim() || !endDate?.trim()) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
     }
 
-    const movements = await Movement.findAll({
+    if (!esFechaValida(startDate) || !esFechaValida(endDate)) {
+      return res.status(400).json({ error: 'Formato de fecha inválido' })
+    }
+
+    const fStartDate = new Date(startDate);
+    const fEndDate = new Date(endDate);
+
+    if (fEndDate < fStartDate) {
+      return res.status(400).json({ error: 'La fecha final debe ser posterior a la inicial' })
+    }
+
+    if (!page || !pageSize) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
+    }
+
+    pageSize = Number(pageSize)
+    page = Number(page)
+
+    const offset = (page - 1) * pageSize
+
+    const { count, rows } = await Movement.findAndCountAll({
       where: {
         UserId,
         date: {
-          [Op.between]: [new Date(startDate), new Date(endDate)]
+          [Op.between]: [fStartDate, fEndDate]
         }
       },
       include: [Category],
+      limit: pageSize,
+      offset: offset,
       order: [['createdAt', 'DESC']]
     })
 
-    res.json(movements)
+    res.json({
+      data: rows,
+      total: count,
+      page,
+      pageSize,
+      totalPages: Math.ceil(count / pageSize)
+    })
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
@@ -176,4 +205,8 @@ export const updateMovement = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
+}
+
+function esFechaValida(fechaString) {
+  return !isNaN(Date.parse(fechaString));
 }
