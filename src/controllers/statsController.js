@@ -8,6 +8,10 @@ export const getTotalByCategory = async (req, res) => {
         const { startDate, endDate } = req.query
         const UserId = req.user.id;
 
+        if (!startDate.trim() || !endDate.trim()) {
+            return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
+        }
+
         const totalGastoByCategory = await Movement.findAll({
             attributes: [
                 'CategoryId',

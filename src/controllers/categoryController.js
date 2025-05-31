@@ -13,6 +13,11 @@ export const getAllCategories = async (req, res) => {
 export const createCategory = async (req, res) => {
     try {
         const { name } = req.body;
+
+        if (!name.trim()) {
+            return res.status(400).json({ error: 'Nombre vacío!' })
+        }
+
         const UserId = req.user.id;
         const newCategory = await Category.create({ name, UserId });
         res.status(201).json(newCategory);
@@ -26,7 +31,12 @@ export const updateCategory = async (req, res) => {
         const { id } = req.params;
         const { name } = req.body;
 
+        if (!name.trim()) {
+            return res.status(400).json({ error: 'Nombre vacío!' })
+        }
+
         const category = await Category.findByPk(id);
+        
         if (!category) {
             return res.status(404).json({ error: 'Category not found' });
         }

@@ -10,7 +10,7 @@ export const getAllMovements = async (req, res) => {
 
     const movements = await Movement.findAll({
       where: { UserId },
-      include: [Category],
+      include: [{ model: Category, attributes: ['name'] }],
       order: [['createdAt', 'DESC']]
     })
 
@@ -43,11 +43,21 @@ export const createMovement = async (req, res) => {
     const { type, amount, description, CategoryId } = req.body
     const UserId = req.user.id
 
-    // Verificamos si la categoría existe
+    if (!type?.trim() || !description?.trim()) {
+      return res.status(400).json({ error: 'Tipo ó Descripción vacíos!' })
+    }
+
+    if (!amount || amount < 0) {
+      return res.status(400).json({ error: 'Monto vacío y/o menor a 0!' })
+    }
+
+    if (!CategoryId || CategoryId <= 0) {
+      return res.status(400).json({ error: 'Id Categoria vacía!' })
+    }
+
     const category = await Category.findByPk(CategoryId)
     if (!category) return res.status(404).json({ error: 'Categoría no encontrada' })
 
-    // Creamos el movimiento
     const newMovement = await Movement.create({
       type,
       amount,
@@ -104,6 +114,10 @@ export const getByDate = async (req, res) => {
     const UserId = req.user.id;
     const { startDate, endDate } = req.query
 
+    if (!startDate.trim() || !endDate.trim()) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
+    }
+
     const movements = await Movement.findAll({
       where: {
         UserId,
@@ -127,7 +141,10 @@ export const updateMovement = async (req, res) => {
     const { type, amount, description, CategoryId, date } = req.body
     const UserId = req.user.id
 
-    // Buscar el movimiento y asegurarse de que pertenece al usuario
+    if ([type, amount, description, CategoryId].some((field) => !field.trim())) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
+    }
+
     const movement = await Movement.findOne({
       where: {
         id,
@@ -139,7 +156,6 @@ export const updateMovement = async (req, res) => {
       return res.status(404).json({ error: 'Movimiento no encontrado o no autorizado' })
     }
 
-    // Si se está actualizando la categoría, verificar que exista
     if (CategoryId) {
       const category = await Category.findByPk(CategoryId)
       if (!category) {
@@ -147,7 +163,6 @@ export const updateMovement = async (req, res) => {
       }
     }
 
-    // Actualizar campos
     await movement.update({
       type: type ?? movement.type,
       amount: amount ?? movement.amount,

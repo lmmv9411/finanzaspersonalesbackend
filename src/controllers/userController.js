@@ -4,7 +4,13 @@ import { User } from "../models/user.js";
 
 export const register = async (req, res) => {
     const { user, name, lastName, password } = req.body;
+
+    if ([user, name, lastName, password].some((field) => !field.trim())) {
+        return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
+    }
+
     const hash = await bcrypt.hash(password, 10);
+
     try {
         await User.create({ user, name, lastName, password: hash });
         res.json({ message: 'Usuario registrado' });
@@ -18,7 +24,9 @@ export const login = async (req, res) => {
     try {
         const { user, password } = req.body;
 
-        if (!user || !password) return res.status(400).json({ error: 'Campos vacíos' })
+        if (!user.trim() || !password.trim()) {
+            return res.status(400).json({ error: 'Campos vacíos' })
+        }
 
         const userDB = await User.findOne({ where: { user } });
         if (!userDB) return res.status(400).json({ error: 'Usuario no encontrado' });
