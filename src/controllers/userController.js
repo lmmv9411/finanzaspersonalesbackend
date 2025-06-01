@@ -1,5 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import path from "path";
+import { fileURLToPath } from "url";
 import { User } from "../models/user.js";
 
 export const register = async (req, res) => {
@@ -77,5 +80,40 @@ export const getUser = async (req, res) => {
         res.json(req.user);
     } catch (error) {
         res.status(500).json({ error: error.message })
+    }
+}
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, '../public/uploads'));
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        const name = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+        cb(null, name);
+    }
+});
+
+export const upload = multer({ storage });
+
+export const uploadProfilePicture = async (req, res) => {
+    try {
+        const user = req.user;
+        const filename = req.file.filename;
+        const url = `/uploads/${filename}`;
+
+        const userDB = await User.findByPk(user.id);
+        if (!userDB) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        userDB.profilePicture = url;
+        await userDB.save();
+
+        res.status(201).json({ url });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err });
     }
 }

@@ -55,6 +55,7 @@ app.get(/\/(.*)/, (req, res) => {
 
 const startServer = async () => {
     await testConnection()
+    //await sequelize.sync({ alter: true });
     await sequelize.sync()  // crea tablas si no existen
     app.listen(3000, () => console.log('Servidor corriendo en http://localhost:3000'))
 }
