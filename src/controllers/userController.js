@@ -42,7 +42,8 @@ export const login = async (req, res) => {
                 user: userDB.user,
                 name: userDB.name,
                 lastName: userDB.lastName,
-                id: userDB.id
+                id: userDB.id,
+                profilePicture: userDB.profilePicture
             },
             process.env.SECRET_KEY, {
             expiresIn: '30d',
@@ -77,7 +78,17 @@ export const logout = async (req, res) => {
 
 export const getUser = async (req, res) => {
     try {
-        res.json(req.user);
+
+        const userDB = await User.findOne({ where: { user: req.user.user } })
+
+        if (!userDB) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        const userData = userDB.get({ plain: true });
+        delete userData.password;
+
+        res.json({ ...userData });
     } catch (error) {
         res.status(500).json({ error: error.message })
     }
