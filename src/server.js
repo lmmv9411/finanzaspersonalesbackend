@@ -42,7 +42,7 @@ app.use(cookieParser())
 const _dirname = path.dirname(fileURLToPath(import.meta.url))
 
 app.use(express.static(path.join(_dirname, 'public')))
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+app.use('/uploads', express.static(path.join(_dirname, '../public/uploads')));
 
 app.use('/api/movements', movementRoutes)
 app.use('/api/categories', categoryRoutes)
