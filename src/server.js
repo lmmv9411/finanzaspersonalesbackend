@@ -51,6 +51,7 @@ app.use('/api/user', userRouter)
 app.use('/api/auth', authRoute)
 
 app.get(/\/(.*)/, (req, res) => {
+    if (req.path.startsWith('/uploads')) return next(); // dejar pasar
     res.sendFile(path.join(_dirname, 'public', 'index.html'))
 });
 
