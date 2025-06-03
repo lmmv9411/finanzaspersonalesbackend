@@ -4,6 +4,7 @@ import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 import { User } from "../models/user.js";
+import fs from 'fs/promises'
 
 export const register = async (req, res) => {
     const { user, name, lastName, password } = req.body;
@@ -118,6 +119,16 @@ export const uploadProfilePicture = async (req, res) => {
 
         const userDB = await User.findByPk(user.id);
         if (!userDB) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+        if (userDB.profilePicture) {
+            try {
+                const oldFileName = path.basename(userDB.profilePicture)
+                const oldPath = path.join(__dirname, '../public/uploads', oldFileName)
+                await fs.unlink(oldPath)
+            } catch (error) {
+                console.error('Error al eliminar la imagen anterior:', error);
+            }
+        }
 
         userDB.profilePicture = url;
         await userDB.save();
