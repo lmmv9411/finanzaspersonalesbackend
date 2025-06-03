@@ -50,7 +50,7 @@ app.use('/api/stats', statsRoutes)
 app.use('/api/user', userRouter)
 app.use('/api/auth', authRoute)
 
-app.get(/\/(.*)/, (req, res) => {
+app.get(/\/(.*)/, (req, res, next) => {
     if (req.path.startsWith('/uploads')) return next(); // dejar pasar
     res.sendFile(path.join(_dirname, 'public', 'index.html'))
 });
