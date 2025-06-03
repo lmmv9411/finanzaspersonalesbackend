@@ -41,7 +41,7 @@ app.use(cookieParser())
 
 const _dirname = path.dirname(fileURLToPath(import.meta.url))
 
-app.use('/uploads', express.static(path.join(_dirname, '../public/uploads')));
+//app.use('/uploads', express.static(path.join(_dirname, '../public/uploads')));
 
 app.use(express.static(path.join(_dirname, 'public')))
 
@@ -52,7 +52,7 @@ app.use('/api/user', userRouter)
 app.use('/api/auth', authRoute)
 
 app.get(/\/(.*)/, (req, res, next) => {
-    if (req.path.startsWith('/uploads')) return next(); // dejar pasar
+   // if (req.path.startsWith('/uploads')) return next(); // dejar pasar
     res.sendFile(path.join(_dirname, 'public', 'index.html'))
 });
 
