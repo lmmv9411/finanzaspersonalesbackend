@@ -1,0 +1,1 @@
+import{_ as r}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{c as e,o}from"./index-CI4SLir-.js";const t={},a={class:"dark:text-gray-100"};function s(c,n){return o(),e("h1",a,"Cambiar Contraseña")}const m=r(t,[["render",s]]);export{m as default};
