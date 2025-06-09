@@ -222,7 +222,8 @@ export const getByDay = async (req, res) => {
     const [diasAgrupados, detalles] = await Promise.all([
       Movement.findAll({
         attributes: [
-          ['date', 'fecha'],
+          ['date', 'fecha_server'],
+          [sequelize.fn('DATE', sequelize.col('date')), 'fecha'],
           [sequelize.fn('SUM', sequelize.col('amount')), 'total_dia'],
           [sequelize.fn('COUNT', sequelize.col('id')), 'cantidad_movimientos']
         ],
@@ -232,7 +233,7 @@ export const getByDay = async (req, res) => {
             [Op.between]: [fStartDate, fEndDate]
           }
         },
-        group: ['date'],
+        group: [sequelize.fn('DATE', sequelize.col('date'))],
         order: [[sequelize.fn('DATE', sequelize.col('date')), 'DESC']],
         limit: pageSize,
         offset: offset,
@@ -253,10 +254,11 @@ export const getByDay = async (req, res) => {
     // Combinar los resultados
     const resultado = diasAgrupados.map(dia => ({
       fecha: dia.fecha,
+      fecha_server: dia.fecha_server,
       total: dia.total_dia,
       cantidad_movimientos: dia.cantidad_movimientos,
       detalles: detalles.filter(mov =>
-        mov.date.toISOString().split('T')[0] === dia.fecha.toISOString().split('T')[0]
+        mov.date.toISOString().split('T')[0] === dia.fecha
       )
     }));
 
