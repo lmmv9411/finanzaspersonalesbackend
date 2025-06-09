@@ -232,7 +232,7 @@ export const getByDay = async (req, res) => {
             [Op.between]: [fStartDate, fEndDate]
           }
         },
-        group: [sequelize.fn('DATE', sequelize.col('date'))],
+        group: ['date'],
         order: [[sequelize.fn('DATE', sequelize.col('date')), 'DESC']],
         limit: pageSize,
         offset: offset,
