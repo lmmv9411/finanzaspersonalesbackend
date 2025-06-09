@@ -1,0 +1,1 @@
+import{I as t,r as o,g as a}from"./index-Diskeban.js";const g=t("categories",()=>{const r=o([]);return{categories:r,getCategories:async()=>{try{const e=await a.get("/categories");r.value=e.data}catch(e){console.error("Error fetching categories:",e)}}}});export{g as u};
