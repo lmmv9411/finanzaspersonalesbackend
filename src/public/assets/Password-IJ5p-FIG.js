@@ -1,0 +1,1 @@
+import{_ as o}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{c as r,o as e}from"./index-Cb_ptunQ.js";const c={};function s(t,n){return e(),r("h1",null,"Password")}const f=o(c,[["render",s]]);export{f as default};

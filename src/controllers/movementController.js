@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import { Category } from '../models/category.js';
 import { Movement } from '../models/movement.js';
+import { sequelize } from '../models/index.js';
 
 export const getAllMovements = async (req, res) => {
 
@@ -152,16 +153,162 @@ export const getByDate = async (req, res) => {
       order: [['createdAt', 'DESC']]
     })
 
+    const [totalGasto, totalIngreso] = await Promise.all([
+      Movement.sum('amount', {
+        where: {
+          UserId,
+          date: {
+            [Op.between]: [fStartDate, fEndDate]
+          },
+          type: 'gasto'
+        }
+      }),
+      Movement.sum('amount', {
+        where: {
+          UserId,
+          date: {
+            [Op.between]: [fStartDate, fEndDate]
+          },
+          type: 'ingreso'
+        }
+      })
+    ])
+
+    const balance = totalIngreso - totalGasto
+
     res.json({
       data: rows,
       total: count,
       page,
       pageSize,
-      totalPages: Math.ceil(count / pageSize)
+      totalPages: Math.ceil(count / pageSize),
+      totalGasto, totalIngreso, balance
     })
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
+}
+
+export const getByDay = async (req, res) => {
+  try {
+    const UserId = req.user.id;
+    const { startDate, endDate } = req.query
+    let { page, pageSize } = req.query
+
+    if (!startDate?.trim() || !endDate?.trim()) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
+    }
+
+    if (!esFechaValida(startDate) || !esFechaValida(endDate)) {
+      return res.status(400).json({ error: 'Formato de fecha inválido' })
+    }
+
+    const fStartDate = new Date(startDate);
+    const fEndDate = new Date(endDate);
+
+    if (fEndDate < fStartDate) {
+      return res.status(400).json({ error: 'La fecha final debe ser posterior a la inicial' })
+    }
+
+    if (!page || !pageSize) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
+    }
+
+    pageSize = Number(pageSize)
+    page = Number(page)
+
+    const offset = (page - 1) * pageSize
+
+    const [diasAgrupados, detalles] = await Promise.all([
+      Movement.findAll({
+        attributes: [
+          [sequelize.fn('DATE', sequelize.col('date')), 'fecha'],
+          [sequelize.fn('SUM', sequelize.col('amount')), 'total_dia'],
+          [sequelize.fn('COUNT', sequelize.col('id')), 'cantidad_movimientos']
+        ],
+        where: {
+          UserId,
+          date: {
+            [Op.between]: [fStartDate, fEndDate]
+          }
+        },
+        group: [sequelize.fn('DATE', sequelize.col('date'))],
+        order: [[sequelize.fn('DATE', sequelize.col('date')), 'DESC']],
+        limit: pageSize,
+        offset: offset,
+        raw: true
+      }),
+      Movement.findAll({
+        where: {
+          UserId,
+          date: {
+            [Op.between]: [fStartDate, fEndDate]
+          }
+        },
+        include: [{ model: Category, attributes: ['name'] }],
+        order: [['date', 'DESC']]
+      })
+    ])
+
+    // Combinar los resultados
+    const resultado = diasAgrupados.map(dia => ({
+      fecha: dia.fecha,
+      total: dia.total_dia,
+      cantidad_movimientos: dia.cantidad_movimientos,
+      detalles: detalles.filter(mov =>
+        mov.date.toISOString().split('T')[0] === dia.fecha
+      )
+    }));
+
+    // Contar el total de días sin limit/offset para la paginación
+    const totalDias = await sequelize.query(
+      `SELECT COUNT(DISTINCT DATE(date)) as total 
+       FROM Movements 
+       WHERE UserId = ? AND date BETWEEN ? AND ?`,
+      {
+        replacements: [UserId, fStartDate, fEndDate],
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
+
+    const [totalGasto, totalIngreso] = await Promise.all([
+      Movement.sum('amount', {
+        where: {
+          UserId,
+          date: {
+            [Op.between]: [fStartDate, fEndDate]
+          },
+          type: 'gasto'
+        }
+      }),
+      Movement.sum('amount', {
+        where: {
+          UserId,
+          date: {
+            [Op.between]: [fStartDate, fEndDate]
+          },
+          type: 'ingreso'
+        }
+      })
+    ])
+
+    const balance = totalIngreso - totalGasto
+
+    res.json({
+      totalDias: totalDias[0].total,
+      totalPages: Math.ceil(totalDias[0].total / pageSize),
+      page,
+      pageSize,
+      totalGasto,
+      totalIngreso,
+      balance,
+      dias: resultado,
+    })
+
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+
 }
 
 export const updateMovement = async (req, res) => {
@@ -170,7 +317,11 @@ export const updateMovement = async (req, res) => {
     const { type, amount, description, CategoryId, date } = req.body
     const UserId = req.user.id
 
-    if ([type, amount, description, CategoryId].some((field) => !field.trim())) {
+    if ([type, amount, description].some((field) => !field.trim())) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
+    }
+
+    if (!CategoryId) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
     }
 
@@ -185,11 +336,9 @@ export const updateMovement = async (req, res) => {
       return res.status(404).json({ error: 'Movimiento no encontrado o no autorizado' })
     }
 
-    if (CategoryId) {
-      const category = await Category.findByPk(CategoryId)
-      if (!category) {
-        return res.status(404).json({ error: 'Categoría no encontrada' })
-      }
+    const category = await Category.findByPk(CategoryId)
+    if (!category) {
+      return res.status(404).json({ error: 'Categoría no encontrada' })
     }
 
     await movement.update({
@@ -203,6 +352,7 @@ export const updateMovement = async (req, res) => {
     res.status(200).json(movement)
 
   } catch (error) {
+    console.error(error)
     res.status(500).json({ error: error.message })
   }
 }
