@@ -222,7 +222,7 @@ export const getByDay = async (req, res) => {
     const [diasAgrupados, detalles] = await Promise.all([
       Movement.findAll({
         attributes: [
-          ['date', 'fecha_server'],
+          [sequelize.fn('MAX', sequelize.col('date')), 'fecha_server'],
           [sequelize.fn('DATE', sequelize.col('date')), 'fecha'],
           [sequelize.fn('SUM', sequelize.col('amount')), 'total_dia'],
           [sequelize.fn('COUNT', sequelize.col('id')), 'cantidad_movimientos']
