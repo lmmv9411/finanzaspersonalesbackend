@@ -3,25 +3,6 @@ import { Category } from '../models/category.js';
 import { Movement } from '../models/movement.js';
 import { sequelize } from '../models/index.js';
 
-export const getAllMovements = async (req, res) => {
-
-  try {
-
-    const UserId = req.user.id;
-
-    const movements = await Movement.findAll({
-      where: { UserId },
-      include: [{ model: Category, attributes: ['name'] }],
-      order: [['createdAt', 'DESC']]
-    })
-
-    res.json(movements)
-
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-}
-
 export const deleteMovement = async (req, res) => {
   try {
 
@@ -105,85 +86,6 @@ export const getBalance = async (req, res) => {
     const balance = totalIngreso - totalGasto
     res.json({ balance, totalIngreso, totalGasto })
 
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-}
-
-export const getByDate = async (req, res) => {
-  try {
-    const UserId = req.user.id;
-    const { startDate, endDate } = req.query
-    let { page, pageSize } = req.query
-
-    if (!startDate?.trim() || !endDate?.trim()) {
-      return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
-    }
-
-    if (!esFechaValida(startDate) || !esFechaValida(endDate)) {
-      return res.status(400).json({ error: 'Formato de fecha inválido' })
-    }
-
-    const fStartDate = new Date(startDate);
-    const fEndDate = new Date(endDate);
-
-    if (fEndDate < fStartDate) {
-      return res.status(400).json({ error: 'La fecha final debe ser posterior a la inicial' })
-    }
-
-    if (!page || !pageSize) {
-      return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
-    }
-
-    pageSize = Number(pageSize)
-    page = Number(page)
-
-    const offset = (page - 1) * pageSize
-
-    const { count, rows } = await Movement.findAndCountAll({
-      where: {
-        UserId,
-        date: {
-          [Op.between]: [fStartDate, fEndDate]
-        }
-      },
-      include: [Category],
-      limit: pageSize,
-      offset: offset,
-      order: [['createdAt', 'DESC']]
-    })
-
-    const [totalGasto, totalIngreso] = await Promise.all([
-      Movement.sum('amount', {
-        where: {
-          UserId,
-          date: {
-            [Op.between]: [fStartDate, fEndDate]
-          },
-          type: 'gasto'
-        }
-      }),
-      Movement.sum('amount', {
-        where: {
-          UserId,
-          date: {
-            [Op.between]: [fStartDate, fEndDate]
-          },
-          type: 'ingreso'
-        }
-      })
-    ])
-
-    const balance = totalIngreso - totalGasto
-
-    res.json({
-      data: rows,
-      total: count,
-      page,
-      pageSize,
-      totalPages: Math.ceil(count / pageSize),
-      totalGasto, totalIngreso, balance
-    })
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
