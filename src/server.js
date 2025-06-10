@@ -59,7 +59,7 @@ const startServer = async () => {
     //await sequelize.sync()  // crea tablas si no existen
     try {
         await sequelize.authenticate()
-        console.log('Conexion con a DB establecida')
+        console.log('Conexion con la DB establecida')
     } catch (error) {
         console.error('Error de conexion a DB', error);
     }
