@@ -54,9 +54,16 @@ app.get(/\/(.*)/, (req, res) => {
 });
 
 const startServer = async () => {
-    await testConnection()
+    //await testConnection()
     //await sequelize.sync({ alter: true });
-    await sequelize.sync()  // crea tablas si no existen
+    //await sequelize.sync()  // crea tablas si no existen
+    try {
+        await sequelize.authenticate()
+        console.log('Conexion con a DB establecida')
+    } catch (error) {
+        console.error('Error de conexion a DB', error);
+    }
+
     app.listen(3000, () => console.log('Servidor corriendo en http://localhost:3000'))
 }
 
