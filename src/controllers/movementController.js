@@ -148,7 +148,7 @@ export const getByDay = async (req, res) => {
             [Op.between]: [fStartDate, fEndDate]
           }
         },
-        include: [{ model: Category, attributes: ['name'] }],
+        include: [{ model: Category, attributes: ['name', "icon"] }],
         order: [['date', 'DESC']]
       })
     ])

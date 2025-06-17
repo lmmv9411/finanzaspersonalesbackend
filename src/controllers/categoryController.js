@@ -12,14 +12,14 @@ export const getAllCategories = async (req, res) => {
 
 export const createCategory = async (req, res) => {
     try {
-        const { name } = req.body;
+        const { name, icon } = req.body;
 
-        if (!name.trim()) {
-            return res.status(400).json({ error: 'Nombre vacío!' })
+        if (!name?.trim() || !icon?.trim()) {
+            return res.status(400).json({ error: 'Campos vacíos!' })
         }
 
         const UserId = req.user.id;
-        const newCategory = await Category.create({ name, UserId });
+        const newCategory = await Category.create({ name, icon, UserId });
         res.status(201).json(newCategory);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -29,21 +29,26 @@ export const createCategory = async (req, res) => {
 export const updateCategory = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name } = req.body;
+        const { name, icon } = req.body;
 
-        if (!name.trim()) {
-            return res.status(400).json({ error: 'Nombre vacío!' })
+        console.log(name, icon)
+
+        if (!name?.trim() || !icon?.trim()) {
+            return res.status(400).json({ error: 'Campos vacíos!' })
         }
 
         const category = await Category.findByPk(id);
-        
+
         if (!category) {
             return res.status(404).json({ error: 'Category not found' });
         }
         category.name = name;
+        category.icon = icon;
+
         await category.save();
         res.json(category);
     } catch (error) {
+        console.error(error)
         res.status(500).json({ error: error.message });
     }
 }
