@@ -1,1 +1,0 @@
-import{H as t,r as o,d as a}from"./index-CF7U3Sn9.js";const i=t("categories",()=>{const r=o([]);return{categories:r,getCategories:async()=>{try{const e=await a.get("/categories");r.value=e.data}catch(e){console.error("Error fetching categories:",e)}}}});export{i as u};

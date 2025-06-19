@@ -1,15 +1,15 @@
+import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { sequelize, testConnection } from './models/index.js'
+import { sequelize } from './models/index.js'
+import authRoute from './routes/authRoute.js'
 import categoryRoutes from './routes/categoryRoutes.js'
 import movementRoutes from './routes/movementRoutes.js'
 import statsRoutes from './routes/statsRoutes.js'
 import userRouter from './routes/userRoutes.js'
-import cookieParser from 'cookie-parser'
-import authRoute from './routes/authRoute.js'
 
 dotenv.config()
 
@@ -56,7 +56,7 @@ app.get(/\/(.*)/, (req, res) => {
 const startServer = async () => {
     //await testConnection()
     try {
-        await sequelize.sync({ alter: true });
+        //await sequelize.sync({ alter: true });
         //await sequelize.sync()  // crea tablas si no existen
         await sequelize.authenticate()
         console.log('Conexion con la DB establecida')
