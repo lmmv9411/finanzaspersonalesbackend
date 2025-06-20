@@ -1,15 +1,15 @@
 import bcrypt from "bcryptjs";
+import fs from 'fs/promises';
 import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 import { User } from "../models/user.js";
-import fs from 'fs/promises'
 
 export const register = async (req, res) => {
     const { user, name, lastName, password } = req.body;
 
-    if ([user, name, lastName, password].some((field) => !field.trim())) {
+    if ([user, name, lastName, password].some((field) => !field?.trim())) {
         return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
     }
 
@@ -17,9 +17,10 @@ export const register = async (req, res) => {
 
     try {
         await User.create({ user, name, lastName, password: hash });
-        res.json({ message: 'Usuario registrado' });
+        res.status(201).json({ message: 'Usuario registrado' });
     } catch (err) {
-        res.status(400).json({ error: 'Error al registrar' });
+        console.error(err)
+        res.status(500).json({ error: err });
     }
 }
 
@@ -28,7 +29,7 @@ export const login = async (req, res) => {
     try {
         const { user, password } = req.body;
 
-        if (!user.trim() || !password.trim()) {
+        if (!user?.trim() || !password?.trim()) {
             return res.status(400).json({ error: 'Campos vacíos' })
         }
 
@@ -138,4 +139,67 @@ export const uploadProfilePicture = async (req, res) => {
         console.error(err);
         res.status(500).json({ error: err });
     }
+}
+
+export const password = async (req, res) => {
+    try {
+
+        const { oldPassword, newPassword } = req.body;
+
+        if (!oldPassword || !newPassword) {
+            return res.status(404).json({ error: 'Todos los campos son obligatorios!' });
+        }
+
+        const userDB = await User.findOne({ where: { user: req.user.user } })
+
+        if (!userDB) {
+            return res.status(404).json({ error: 'Usuario no encontrado!' });
+        }
+
+        const valid = await bcrypt.compare(oldPassword, userDB.password);
+        if (!valid) return res.status(401).json({ error: 'Contraseña incorrecta' });
+
+        const check = await checkPassword(newPassword)
+
+        if (!check.status) {
+            return res.status(404).json({ error: check.message })
+        }
+
+        const hash = await bcrypt.hash(newPassword, 10);
+
+        await userDB.update({
+            password: hash
+        })
+
+        res.status(201).json({ status: 'ok' })
+
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: error })
+    }
+
+}
+
+const checkPassword = async (newPassword) => {
+    const response = { status: false, message: '' }
+
+    if (newPassword.length < 8) {
+        response.message = 'Minimo 8 caracteres'
+        return response
+    }
+
+    if (!/\d/.test(newPassword)) {
+        response.message = 'Minimo 1 Número'
+        return response
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+        response.message = 'Minimo un caracter especial'
+        return response
+    }
+
+
+    response.status = true
+    return response
+
 }
