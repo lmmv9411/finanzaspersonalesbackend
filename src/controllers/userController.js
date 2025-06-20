@@ -157,7 +157,7 @@ export const password = async (req, res) => {
         }
 
         const valid = await bcrypt.compare(oldPassword, userDB.password);
-        if (!valid) return res.status(401).json({ error: 'Contraseña incorrecta' });
+        if (!valid) return res.status(401).json({ error: '¡Contraseña Actual Es Incorrecta!' });
 
         const check = await checkPassword(newPassword)
 
