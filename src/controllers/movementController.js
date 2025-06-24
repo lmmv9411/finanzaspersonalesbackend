@@ -95,7 +95,7 @@ export const getByDay = async (req, res) => {
   try {
     const UserId = req.user.id;
     const { startDate, endDate } = req.query
-    let { page, pageSize } = req.query
+    let { page, pageSize, type, categoryId } = req.query
 
     if (!startDate?.trim() || !endDate?.trim()) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
@@ -121,6 +121,27 @@ export const getByDay = async (req, res) => {
 
     const offset = (page - 1) * pageSize
 
+    const baseWhere = {
+      UserId,
+      date: {
+        [Op.between]: [fStartDate, fEndDate]
+      }
+    }
+
+    if (type && ['ingreso', 'gasto'].includes(type)) {
+      baseWhere.type = type
+    }
+
+    if (categoryId) {
+      baseWhere.CategoryId = categoryId
+    }
+
+    const includeOptions = [{
+      model: Category,
+      attributes: ['name', 'icon'],
+      ...(categoryId ? { where: { id: categoryId } } : {})
+    }];
+
     const [diasAgrupados, detalles] = await Promise.all([
       Movement.findAll({
         attributes: [
@@ -129,12 +150,7 @@ export const getByDay = async (req, res) => {
           [sequelize.fn('SUM', sequelize.col('amount')), 'total_dia'],
           [sequelize.fn('COUNT', sequelize.col('id')), 'cantidad_movimientos']
         ],
-        where: {
-          UserId,
-          date: {
-            [Op.between]: [fStartDate, fEndDate]
-          }
-        },
+        where: baseWhere,
         group: [sequelize.fn('DATE', sequelize.col('date'))],
         order: [[sequelize.fn('DATE', sequelize.col('date')), 'DESC']],
         limit: pageSize,
@@ -142,13 +158,8 @@ export const getByDay = async (req, res) => {
         raw: true
       }),
       Movement.findAll({
-        where: {
-          UserId,
-          date: {
-            [Op.between]: [fStartDate, fEndDate]
-          }
-        },
-        include: [{ model: Category, attributes: ['name', "icon"] }],
+        where: baseWhere,
+        include: includeOptions,
         order: [['date', 'DESC']]
       })
     ])
@@ -164,52 +175,60 @@ export const getByDay = async (req, res) => {
       )
     }));
 
-    // Contar el total de días sin limit/offset para la paginación
-    const totalDias = await sequelize.query(
-      `SELECT COUNT(DISTINCT DATE(date)) as total 
-       FROM Movements 
-       WHERE UserId = ? AND date BETWEEN ? AND ?`,
-      {
-        replacements: [UserId, fStartDate, fEndDate],
-        type: sequelize.QueryTypes.SELECT
+    /* // Contar el total de días sin limit/offset para la paginación
+     const totalDias = await sequelize.query(
+       `SELECT COUNT(DISTINCT DATE(date)) as total 
+        FROM Movements 
+        WHERE UserId = ? AND date BETWEEN ? AND ?`,
+       {
+         replacements: [UserId, fStartDate, fEndDate],
+         type: sequelize.QueryTypes.SELECT
+       }
+     );*/
+
+    // Consulta para contar días con los mismos filtros
+    const countQuery = {
+      where: baseWhere,
+      attributes: [
+        [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.fn('DATE', sequelize.col('date')))), 'total']
+      ],
+      raw: true
+    };
+
+    const totalDias = await Movement.findOne(countQuery);
+
+    // Consultas para totales con filtros
+    const sumQuery = (typeFilter) => ({
+      where: {
+        ...baseWhere,
+        ...(typeFilter ? { type: typeFilter } : {})
       }
-    );
+    });
 
     const [totalGasto, totalIngreso] = await Promise.all([
-      Movement.sum('amount', {
-        where: {
-          UserId,
-          date: {
-            [Op.between]: [fStartDate, fEndDate]
-          },
-          type: 'gasto'
-        }
-      }),
-      Movement.sum('amount', {
-        where: {
-          UserId,
-          date: {
-            [Op.between]: [fStartDate, fEndDate]
-          },
-          type: 'ingreso'
-        }
-      })
+      Movement.sum('amount', sumQuery('gasto')),
+      Movement.sum('amount', sumQuery('ingreso'))
     ])
 
     const balance = totalIngreso - totalGasto
 
     res.json({
-      totalDias: totalDias[0].total,
-      totalPages: Math.ceil(totalDias[0].total / pageSize),
+      totalDias: totalDias.total || 0,
+      totalPages: Math.ceil((totalDias.total || 0) / pageSize),
       page,
       pageSize,
       totalGasto,
       totalIngreso,
       balance,
+      filtersApplied: {
+        type: type || 'todos',
+        categoryId: categoryId || 'todas'
+      },
       dias: resultado,
     })
 
   } catch (error) {
+    console.error(error)
     res.status(500).json({ error: error.message })
   }
 
