@@ -175,17 +175,6 @@ export const getByDay = async (req, res) => {
       )
     }));
 
-    /* // Contar el total de días sin limit/offset para la paginación
-     const totalDias = await sequelize.query(
-       `SELECT COUNT(DISTINCT DATE(date)) as total 
-        FROM Movements 
-        WHERE UserId = ? AND date BETWEEN ? AND ?`,
-       {
-         replacements: [UserId, fStartDate, fEndDate],
-         type: sequelize.QueryTypes.SELECT
-       }
-     );*/
-
     // Consulta para contar días con los mismos filtros
     const countQuery = {
       where: baseWhere,
@@ -205,10 +194,13 @@ export const getByDay = async (req, res) => {
       }
     });
 
+    const calculateIngreso = (!type || type === 'ingreso')
+    const calculateGasto = (!type || type === 'gasto')
+
     const [totalGasto, totalIngreso] = await Promise.all([
-      Movement.sum('amount', sumQuery('gasto')),
-      Movement.sum('amount', sumQuery('ingreso'))
-    ])
+      calculateGasto ? Movement.sum('amount', sumQuery('gasto')) : Promise.resolve(0),
+      calculateIngreso ? Movement.sum('amount', sumQuery('ingreso')) : Promise.resolve(0)
+    ]).then(sums => sums.map(sum => sum || 0));
 
     const balance = totalIngreso - totalGasto
 
