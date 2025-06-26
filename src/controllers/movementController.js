@@ -231,6 +231,7 @@ export const updateMovement = async (req, res) => {
     const { id } = req.params
     const { type, amount, description, CategoryId, date } = req.body
     const UserId = req.user.id
+    let fecha;
 
     if ([type, amount, description].some((field) => !field.trim())) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
@@ -238,6 +239,10 @@ export const updateMovement = async (req, res) => {
 
     if (!CategoryId) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
+    }
+
+    if (date) {
+      fecha = new Date(date)
     }
 
     const movement = await Movement.findOne({
@@ -261,7 +266,7 @@ export const updateMovement = async (req, res) => {
       amount: amount ?? movement.amount,
       description: description ?? movement.description,
       CategoryId: CategoryId ?? movement.CategoryId,
-      date: date ?? movement.date
+      date: fecha ?? movement.date
     })
 
     res.status(200).json(movement)
