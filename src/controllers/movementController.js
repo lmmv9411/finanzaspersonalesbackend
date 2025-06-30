@@ -262,10 +262,10 @@ export const updateMovement = async (req, res) => {
     }
 
     await movement.update({
-      type: type ?? movement.type,
-      amount: amount ?? movement.amount,
-      description: description ?? movement.description,
-      CategoryId: CategoryId ?? movement.CategoryId,
+      type,
+      amount,
+      description,
+      CategoryId,
       date: fecha ?? movement.date
     })
 
