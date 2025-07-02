@@ -17,9 +17,9 @@ const app = express()
 
 /*const allowedOrigins = [
     'http://localhost:5173',
-    'http://192.168.1.69:5173',
+    'http://192.168.1.85:5173',
     'http://localhost:3000',
-    'http://192.168.1.69:3000'
+    'http://192.168.1.85:3000'
 ];*/
 
 app.use(cors(/*{
