@@ -10,6 +10,10 @@ export const sequelize = new Sequelize(
   {
     host: process.env.DB_HOST,
     dialect: 'mysql',
+    timezone: '+00:00', // Fuerza UTC en MySQL
+    dialectOptions: {
+      timezone: 'Z', // UTC 
+    },
     logging: false,
     pool: {
       max: 5,
