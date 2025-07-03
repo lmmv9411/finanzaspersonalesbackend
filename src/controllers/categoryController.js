@@ -29,9 +29,7 @@ export const createCategory = async (req, res) => {
 export const updateCategory = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, icon, type } = req.body;
-
-        console.log(name, icon)
+        const { name, icon, type } = req.body;        
 
         if (!name?.trim() || !icon?.trim() || !type?.trim()) {
             return res.status(400).json({ error: 'Campos vacíos!' })
