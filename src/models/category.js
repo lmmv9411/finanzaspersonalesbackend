@@ -11,7 +11,11 @@ export const Category = sequelize.define('Category',
         icon: {
             type: DataTypes.STRING,
             allowNull: false
-        }
+        },
+        type: {
+            type: DataTypes.ENUM('ingreso', 'gasto'),
+            allowNull: false
+        },
     },
     {
         timestamps: true
@@ -26,3 +30,4 @@ Category.belongsTo(User, {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE'
 })
+
