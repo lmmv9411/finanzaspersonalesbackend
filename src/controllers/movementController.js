@@ -91,11 +91,15 @@ export const getBalance = async (req, res) => {
   }
 }
 
+// Función auxiliar para validar timezone (deberías implementarla)
+function isValidTimeZone(tz) {
+  return /^[+-]\d{2}:\d{2}$/.test(tz);
+}
+
 export const getByDay = async (req, res) => {
   try {
     const UserId = req.user.id;
-    const { startDate, endDate } = req.query
-    let { page, pageSize, type, categoryId } = req.query
+    let { page, pageSize, type, categoryId, startDate, endDate, tz } = req.query
 
     if (!startDate?.trim() || !endDate?.trim()) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
@@ -142,17 +146,20 @@ export const getByDay = async (req, res) => {
       ...(categoryId ? { where: { id: categoryId } } : {})
     }];
 
+    // Configuración de zona horaria
+    const timeZone = tz && isValidTimeZone(tz) ? tz : '+00:00';
+
     const [diasAgrupados, detalles] = await Promise.all([
       Movement.findAll({
         attributes: [
           [sequelize.fn('MAX', sequelize.col('date')), 'fecha_server'],
-          [sequelize.fn('DATE', sequelize.col('date')), 'fecha'],
+          [sequelize.literal(`DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`), 'fecha'],
           [sequelize.fn('SUM', sequelize.col('amount')), 'total_dia'],
           [sequelize.fn('COUNT', sequelize.col('id')), 'cantidad_movimientos']
         ],
         where: baseWhere,
-        group: [sequelize.fn('DATE', sequelize.col('date'))],
-        order: [[sequelize.fn('DATE', sequelize.col('date')), 'DESC']],
+        group: [sequelize.literal(`DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`)],
+        order: [[sequelize.literal(`DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`), 'DESC']],
         limit: pageSize,
         offset: offset,
         raw: true
@@ -160,9 +167,30 @@ export const getByDay = async (req, res) => {
       Movement.findAll({
         where: baseWhere,
         include: includeOptions,
-        order: [['date', 'DESC']]
+        order: [[sequelize.literal(`DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`), 'DESC']]
       })
     ])
+
+    const formatDateInOffset = (dateInput, tzOffset = '+00:00') => {
+      try {
+        const date = new Date(dateInput);
+        if (isNaN(date.getTime())) return null;
+
+        const match = tzOffset.match(/^([+-])(\d{2}):(\d{2})$/);
+        if (!match) return null;
+
+        const [, sign, hh, mm] = match;
+        const offsetMinutes = (parseInt(hh, 10) * 60 + parseInt(mm, 10)) * (sign === '+' ? 1 : -1);
+        const adjustedDate = new Date(date.getTime() + offsetMinutes * 60000);
+
+        const pad = n => String(n).padStart(2, '0');
+        return `${adjustedDate.getFullYear()}-${pad(adjustedDate.getMonth() + 1)}-${pad(adjustedDate.getDate())}`;
+      } catch (error) {
+        console.error('Error formatting date:', error);
+        return null;
+      }
+    };
+
 
     // Combinar los resultados
     const resultado = diasAgrupados.map(dia => ({
@@ -170,16 +198,19 @@ export const getByDay = async (req, res) => {
       fecha_server: dia.fecha_server,
       total: dia.total_dia,
       cantidad_movimientos: dia.cantidad_movimientos,
-      detalles: detalles.filter(mov =>
-        mov.date.toISOString().split('T')[0] === dia.fecha
-      )
+      detalles: detalles.filter(mov => {
+        const r = formatDateInOffset(mov.date, tz);
+        console.log(r, dia.fecha);
+        return r === dia.fecha
+      })
     }));
 
     // Consulta para contar días con los mismos filtros
     const countQuery = {
       where: baseWhere,
       attributes: [
-        [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.fn('DATE', sequelize.col('date')))), 'total']
+        [sequelize.fn('COUNT', sequelize.literal(`DISTINCT DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`)),
+          'total']
       ],
       raw: true
     };
