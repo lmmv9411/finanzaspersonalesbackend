@@ -198,11 +198,7 @@ export const getByDay = async (req, res) => {
       fecha_server: dia.fecha_server,
       total: dia.total_dia,
       cantidad_movimientos: dia.cantidad_movimientos,
-      detalles: detalles.filter(mov => {
-        const r = formatDateInOffset(mov.date, tz);
-        console.log(r, dia.fecha);
-        return r === dia.fecha
-      })
+      detalles: detalles.filter(mov => formatDateInOffset(mov.date, tz) === dia.fecha)
     }));
 
     // Consulta para contar días con los mismos filtros
