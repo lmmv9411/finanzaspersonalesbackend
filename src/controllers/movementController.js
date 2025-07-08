@@ -149,17 +149,19 @@ export const getByDay = async (req, res) => {
     // Configuración de zona horaria
     const timeZone = tz && isValidTimeZone(tz) ? tz : '+00:00';
 
+    const localDateLiteral = sequelize.literal(`DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`);
+
     const [diasAgrupados, detalles] = await Promise.all([
       Movement.findAll({
         attributes: [
           [sequelize.fn('MAX', sequelize.col('date')), 'fecha_server'],
-          [sequelize.literal(`DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`), 'fecha'],
+          [localDateLiteral, 'fecha'],
           [sequelize.fn('SUM', sequelize.col('amount')), 'total_dia'],
           [sequelize.fn('COUNT', sequelize.col('id')), 'cantidad_movimientos']
         ],
         where: baseWhere,
-        group: [sequelize.literal(`DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`)],
-        order: [[sequelize.literal(`DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`), 'DESC']],
+        group: [localDateLiteral],
+        order: [[localDateLiteral, 'DESC']],
         limit: pageSize,
         offset: offset,
         raw: true
@@ -167,7 +169,7 @@ export const getByDay = async (req, res) => {
       Movement.findAll({
         where: baseWhere,
         include: includeOptions,
-        order: [[sequelize.literal(`DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`), 'DESC']]
+        order: [[localDateLiteral, 'DESC']]
       })
     ])
 
@@ -205,7 +207,7 @@ export const getByDay = async (req, res) => {
     const countQuery = {
       where: baseWhere,
       attributes: [
-        [sequelize.fn('COUNT', sequelize.literal(`DISTINCT DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`)),
+        [sequelize.fn('COUNT', localDateLiteral),
           'total']
       ],
       raw: true
