@@ -151,7 +151,33 @@ export const getByDay = async (req, res) => {
 
     const localDateLiteral = sequelize.literal(`DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`);
 
-    const [diasAgrupados, detalles] = await Promise.all([
+    // --- START OF REFACTORED LOGIC ---
+
+    // Consultas para totales con filtros
+    const sumQuery = (typeFilter) => ({
+      where: {
+        ...baseWhere,
+        ...(typeFilter ? { type: typeFilter } : {})
+      }
+    });
+
+    const calculateIngreso = (!type || type === 'ingreso');
+    const calculateGasto = (!type || type === 'gasto');
+
+    const [
+      { count: groupedCount },
+      diasAgrupados,
+      totalGastoSum,
+      totalIngresoSum
+    ] = await Promise.all([
+      // 1. Contar el total de días distintos para la paginación
+      Movement.findAndCountAll({
+        where: baseWhere,
+        attributes: [[localDateLiteral, 'fecha']],
+        group: [localDateLiteral],
+        raw: true
+      }),
+      // 2. Obtener los días agrupados y paginados
       Movement.findAll({
         attributes: [
           [sequelize.fn('MAX', sequelize.col('date')), 'fecha_server'],
@@ -166,76 +192,62 @@ export const getByDay = async (req, res) => {
         offset: offset,
         raw: true
       }),
-      Movement.findAll({
-        where: baseWhere,
-        include: includeOptions,
-        order: [[localDateLiteral, 'DESC']]
-      })
-    ])
-
-    const formatDateInOffset = (dateInput, tzOffset = '+00:00') => {
-      try {
-        const date = new Date(dateInput);
-        if (isNaN(date.getTime())) return null;
-
-        const match = tzOffset.match(/^([+-])(\d{2}):(\d{2})$/);
-        if (!match) return null;
-
-        const [, sign, hh, mm] = match;
-        const offsetMinutes = (parseInt(hh, 10) * 60 + parseInt(mm, 10)) * (sign === '+' ? 1 : -1);
-        const adjustedDate = new Date(date.getTime() + offsetMinutes * 60000);
-
-        const pad = n => String(n).padStart(2, '0');
-        return `${adjustedDate.getFullYear()}-${pad(adjustedDate.getMonth() + 1)}-${pad(adjustedDate.getDate())}`;
-      } catch (error) {
-        console.error('Error formatting date:', error);
-        return null;
-      }
-    };
-
-
-    // Combinar los resultados
-    const resultado = diasAgrupados.map(dia => ({
-      fecha: dia.fecha,
-      fecha_server: dia.fecha_server,
-      total: dia.total_dia,
-      cantidad_movimientos: dia.cantidad_movimientos,
-      detalles: detalles.filter(mov => formatDateInOffset(mov.date, tz) === dia.fecha)
-    }));
-
-    // Consulta para contar días con los mismos filtros
-    const countQuery = {
-      where: baseWhere,
-      attributes: [
-        [sequelize.fn('COUNT', localDateLiteral),
-          'total']
-      ],
-      raw: true
-    };
-
-    const totalDias = await Movement.findOne(countQuery);
-
-    // Consultas para totales con filtros
-    const sumQuery = (typeFilter) => ({
-      where: {
-        ...baseWhere,
-        ...(typeFilter ? { type: typeFilter } : {})
-      }
-    });
-
-    const calculateIngreso = (!type || type === 'ingreso')
-    const calculateGasto = (!type || type === 'gasto')
-
-    const [totalGasto, totalIngreso] = await Promise.all([
+      // 3. Calcular totales
       calculateGasto ? Movement.sum('amount', sumQuery('gasto')) : Promise.resolve(0),
       calculateIngreso ? Movement.sum('amount', sumQuery('ingreso')) : Promise.resolve(0)
-    ]).then(sums => sums.map(sum => sum || 0));
+    ]);
 
-    const balance = totalIngreso - totalGasto
+    const totalDias = groupedCount.length;
+    const totalIngreso = totalIngresoSum || 0;
+    const totalGasto = totalGastoSum || 0;
+
+    let resultado = [];
+
+    if (diasAgrupados.length > 0) {
+      const fechasDeLaPagina = diasAgrupados.map(d => d.fecha);
+
+      // 4. Obtener los detalles solo para los días de la página actual
+      const detalles = await Movement.findAll({
+        attributes: {
+          include: [
+            [localDateLiteral, 'fecha_local_group']
+          ]
+        },
+        where: {
+          ...baseWhere,
+          [Op.and]: [
+            sequelize.where(localDateLiteral, { [Op.in]: fechasDeLaPagina })
+          ]
+        },
+        include: includeOptions,
+        order: [['date', 'DESC']]
+      });
+
+      // 5. Agrupar detalles por fecha para una búsqueda eficiente
+      const detallesPorFecha = detalles.reduce((acc, mov) => {
+        const fechaKey = mov.dataValues.fecha_local_group;
+        if (!acc[fechaKey]) {
+          acc[fechaKey] = [];
+        }
+        acc[fechaKey].push(mov);
+        return acc;
+      }, {});
+
+      // 6. Combinar los resultados
+      resultado = diasAgrupados.map(dia => ({
+        fecha: dia.fecha,
+        fecha_server: dia.fecha_server,
+        total: dia.total_dia,
+        cantidad_movimientos: dia.cantidad_movimientos,
+        detalles: detallesPorFecha[dia.fecha] || []
+      }));
+    }
+
+    const balance = totalIngreso - totalGasto;
 
     res.json({
-      totalDias: totalDias.total || 0,
-      totalPages: Math.ceil((totalDias.total || 0) / pageSize),
+      totalDias: totalDias,
+      totalPages: Math.ceil(totalDias / pageSize),
       page,
       pageSize,
       totalGasto,
@@ -246,13 +258,12 @@ export const getByDay = async (req, res) => {
         categoryId: categoryId || 'todas'
       },
       dias: resultado,
-    })
+    });
 
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: error.message })
   }
-
 }
 
 export const updateMovement = async (req, res) => {
