@@ -22,7 +22,7 @@ export const deleteMovement = async (req, res) => {
 
 export const createMovement = async (req, res) => {
   try {
-    const { type, amount, description, CategoryId } = req.body
+    const { type, amount, description, CategoryId, date } = req.body
     const UserId = req.user.id
 
     if (!type?.trim() || !description?.trim()) {
@@ -40,13 +40,23 @@ export const createMovement = async (req, res) => {
     const category = await Category.findByPk(CategoryId)
     if (!category) return res.status(404).json({ error: 'Categoría no encontrada' })
 
-    const newMovement = await Movement.create({
+    const movement = {
       type,
       amount,
       description,
       CategoryId,
       UserId
-    })
+    }
+
+    if (date) {
+      const fecha = new Date(date);
+      if (isNaN(fecha.getTime())) {
+        return res.status(400).json({ error: 'Fecha inválida' });
+      }
+      movement.date = fecha;
+    }
+
+    const newMovement = await Movement.create(movement)
 
     res.status(201).json(newMovement)
 
