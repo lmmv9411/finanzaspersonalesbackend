@@ -15,14 +15,16 @@ dotenv.config()
 
 const app = express()
 
-/*const allowedOrigins = [
+const allowedOrigins = [
     'http://localhost:5173',
     'http://192.168.1.85:5173',
     'http://localhost:3000',
-    'http://192.168.1.85:3000'
-];*/
+    'http://192.168.1.85:3000',
+    'http://localhost', // capacitor
+    'http://34.19.34.203:3000'
+];
 
-app.use(cors(/*{
+app.use(cors({
     origin: (origin, callback) => {
         // Permitir solicitudes sin origen (por ejemplo, curl o Postman)
         if (!origin) return callback(null, true);
@@ -34,7 +36,7 @@ app.use(cors(/*{
         }
     },
     credentials: true, // permite enviar cookies
-}*/))
+}))
 
 app.use(express.json())
 app.use(cookieParser())
