@@ -21,7 +21,7 @@ const allowedOrigins = [
     'http://localhost:3000',
     'http://192.168.1.85:3000',
     'http://localhost', // capacitor
-    'http://34.19.34.203:3000'
+    'http://104.196.241.227:3000/'
 ];
 
 app.use(cors({
