@@ -18,9 +18,9 @@ const app = express()
 
 const allowedOrigins = [
     'http://localhost:5173',
-    'http://192.168.1.85:5173',
+    'http://192.168.1.79:5173',
     'http://localhost:3000',
-    'http://192.168.1.85:3000',
+    'http://192.168.1.79:3000',
     'http://localhost', // capacitor
     'http://34.83.79.200:3000'
 ];
