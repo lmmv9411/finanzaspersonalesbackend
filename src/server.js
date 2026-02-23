@@ -10,6 +10,7 @@ import categoryRoutes from './routes/categoryRoutes.js'
 import movementRoutes from './routes/movementRoutes.js'
 import statsRoutes from './routes/statsRoutes.js'
 import userRouter from './routes/userRoutes.js'
+import accountRoutes from './routes/accountRoute.js'
 
 dotenv.config()
 
@@ -50,6 +51,7 @@ app.use('/api/categories', categoryRoutes)
 app.use('/api/stats', statsRoutes)
 app.use('/api/user', userRouter)
 app.use('/api/auth', authRoute)
+app.use('/api/accounts', accountRoutes)
 
 app.get(/\/(.*)/, (req, res) => {
     res.sendFile(path.join(_dirname, 'public', 'index.html'))

@@ -5,7 +5,7 @@ import { Movement } from "../models/movement.js"
 
 export const getTotalByCategory = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query
+        const { startDate, endDate, accountId } = req.query
         const UserId = req.user.id;
 
         if (!startDate.trim() || !endDate.trim()) {
@@ -22,7 +22,8 @@ export const getTotalByCategory = async (req, res) => {
                 date: {
                     [Op.between]: [new Date(startDate), new Date(endDate)]
                 },
-                type: 'gasto'
+                type: 'gasto',
+                ...(accountId ? { AccountId: accountId } : {})
             },
             group: ['CategoryId'],
             include: {
@@ -41,7 +42,8 @@ export const getTotalByCategory = async (req, res) => {
                 date: {
                     [Op.between]: [new Date(startDate), new Date(endDate)]
                 },
-                type: 'ingreso'
+                type: 'ingreso',
+                ...(accountId ? { AccountId: accountId } : {})
             },
             group: ['CategoryId'],
             include: {
@@ -59,6 +61,7 @@ export const getTotalByCategory = async (req, res) => {
 export const getMonthly = async (req, res) => {
 
     const UserId = req.user.id;
+    const { AccountId } = req.query
 
     const currentYear = new Date().getFullYear();
     const startDate = new Date(`${currentYear}-01-01`);
@@ -73,7 +76,8 @@ export const getMonthly = async (req, res) => {
                 where: {
                     UserId,
                     type: 'ingreso',
-                    date: { [Op.gte]: startDate }
+                    date: { [Op.gte]: startDate },
+                    ...(AccountId ? { AccountId } : {})
                 },
                 group: ['month'],
                 order: [[sequelize.literal('month'), 'ASC']],
@@ -87,7 +91,8 @@ export const getMonthly = async (req, res) => {
                 where: {
                     UserId,
                     type: 'gasto',
-                    date: { [Op.gte]: startDate }
+                    date: { [Op.gte]: startDate },
+                    ...(AccountId ? { AccountId } : {})
                 },
                 group: ['month'],
                 order: [[sequelize.literal('month'), 'ASC']],

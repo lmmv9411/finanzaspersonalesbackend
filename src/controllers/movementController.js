@@ -2,12 +2,14 @@ import { Op } from 'sequelize';
 import { Category } from '../models/category.js';
 import { Movement } from '../models/movement.js';
 import { sequelize } from '../models/index.js';
+import { Account } from '../models/account.js';
 
 export const deleteMovement = async (req, res) => {
   try {
 
     const { id } = req.params
-    const movement = await Movement.findByPk(id)
+    const UserId = req.user.id
+    const movement = await Movement.findOne({ where: { id, UserId } })
 
     if (!movement) {
       return res.status(404).json({ error: 'Movement not found' });
@@ -22,7 +24,7 @@ export const deleteMovement = async (req, res) => {
 
 export const createMovement = async (req, res) => {
   try {
-    const { type, amount, description, CategoryId, date } = req.body
+    const { type, amount, description, CategoryId, AccountId, date } = req.body
     const UserId = req.user.id
 
     if (!type?.trim() || !description?.trim()) {
@@ -37,14 +39,22 @@ export const createMovement = async (req, res) => {
       return res.status(400).json({ error: 'Id Categoria vacía!' })
     }
 
+    if (!AccountId || AccountId <= 0) {
+      return res.status(400).json({ error: 'Id Cuenta vacía!' })
+    }
+
     const category = await Category.findByPk(CategoryId)
     if (!category) return res.status(404).json({ error: 'Categoría no encontrada' })
+
+    const account = await Account.findOne({ where: { id: AccountId, UserId } })
+    if (!account) return res.status(404).json({ error: 'Cuenta no encontrada' })
 
     const movement = {
       type,
       amount,
       description,
       CategoryId,
+      AccountId,
       UserId
     }
 
@@ -101,7 +111,6 @@ export const getBalance = async (req, res) => {
   }
 }
 
-// Función auxiliar para validar timezone (deberías implementarla)
 function isValidTimeZone(tz) {
   return /^[+-]\d{2}:\d{2}$/.test(tz);
 }
@@ -109,7 +118,7 @@ function isValidTimeZone(tz) {
 export const getByDay = async (req, res) => {
   try {
     const UserId = req.user.id;
-    let { page, pageSize, type, categoryId, startDate, endDate, tz } = req.query
+    let { page, pageSize, type, categoryId, AccountId, startDate, endDate, tz } = req.query
 
     if (!startDate?.trim() || !endDate?.trim()) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
@@ -150,10 +159,19 @@ export const getByDay = async (req, res) => {
       baseWhere.CategoryId = categoryId
     }
 
+    if (AccountId) {
+      baseWhere.AccountId = AccountId
+    }
+
     const includeOptions = [{
       model: Category,
       attributes: ['name', 'icon'],
       ...(categoryId ? { where: { id: categoryId } } : {})
+    },
+    {
+      model: Account,
+      attributes: ['name', 'type'],
+      ...(AccountId ? { where: { id: AccountId } } : {})
     }];
 
     // Configuración de zona horaria
@@ -265,7 +283,8 @@ export const getByDay = async (req, res) => {
       balance,
       filtersApplied: {
         type: type || 'todos',
-        categoryId: categoryId || 'todas'
+        categoryId: categoryId || 'todas',
+        accountId: AccountId || 'todas'
       },
       dias: resultado,
     });
@@ -279,16 +298,17 @@ export const getByDay = async (req, res) => {
 export const updateMovement = async (req, res) => {
   try {
     const { id } = req.params
-    const { type, amount, description, CategoryId, date } = req.body
+    const { type, amount, description, CategoryId, AccountId, date } = req.body
     const UserId = req.user.id
     let fecha;
 
-    if ([type, amount, description].some((field) => !field.trim())) {
+    if (!type?.trim() || !description?.trim() || amount === undefined || amount === null || amount < 0) {
       return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
     }
 
-    if (!CategoryId) {
-      return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
+    if (!CategoryId || !AccountId) {
+      return res.status(400).json
+        ({ error: 'Todos los campos son obligatorios!' })
     }
 
     if (date) {
@@ -306,9 +326,16 @@ export const updateMovement = async (req, res) => {
       return res.status(404).json({ error: 'Movimiento no encontrado o no autorizado' })
     }
 
-    const category = await Category.findByPk(CategoryId)
+    const category = await Category.findOne({ where: { id: CategoryId, UserId } })
+
     if (!category) {
       return res.status(404).json({ error: 'Categoría no encontrada' })
+    }
+
+    const account = await Account.findOne({ where: { id: AccountId, UserId } })
+
+    if (!account) {
+      return res.status(404).json({ error: 'Cuenta no encontrada' })
     }
 
     await movement.update({
@@ -316,6 +343,7 @@ export const updateMovement = async (req, res) => {
       amount,
       description,
       CategoryId,
+      AccountId,
       date: fecha ?? movement.date
     })
 

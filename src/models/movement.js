@@ -2,6 +2,7 @@ import { DataTypes } from 'sequelize'
 import { Category } from './category.js'
 import { sequelize } from './index.js'
 import { User } from './user.js'
+import { Account } from './account.js'
 
 export const Movement = sequelize.define('Movement',
     {
@@ -48,3 +49,13 @@ User.hasMany(Movement, {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE'
 })
+
+Movement.belongsTo(Account, {
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE'
+})
+
+Account.hasMany(Movement, {
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE'
+}) 
