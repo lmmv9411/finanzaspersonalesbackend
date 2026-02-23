@@ -1,7 +1,7 @@
 import { Account } from "../models/account.js"
 import { Movement } from "../models/movement.js"
 
-export const getAccountsWithBalance = async (req, res) => {
+export const getAllAccounts = async (req, res) => {
     try {
 
         const userId = req.user.id
@@ -38,7 +38,7 @@ export const getAccountsWithBalance = async (req, res) => {
     }
 }
 
-export const getAllAccounts = async (req, res) => {
+/*export const getAllAccounts = async (req, res) => {
     try {
         const userId = req.user.id
         const accounts = await Account.findAll({
@@ -50,7 +50,7 @@ export const getAllAccounts = async (req, res) => {
         console.error('Error al obtener las cuentas:', error)
         res.status(500).json({ message: 'Error al obtener las cuentas' })
     }
-}
+}*/
 
 export const getAccountById = async (req, res) => {
     try {
