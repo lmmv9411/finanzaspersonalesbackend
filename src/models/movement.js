@@ -3,6 +3,7 @@ import { Category } from './category.js'
 import { sequelize } from './index.js'
 import { User } from './user.js'
 import { Account } from './account.js'
+import { Transfer } from './transfer.js'
 
 export const Movement = sequelize.define('Movement',
     {
@@ -22,6 +23,15 @@ export const Movement = sequelize.define('Movement',
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,
             allowNull: false
+        },
+        isTransfer: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
+        },
+        transferRole: {
+            type: DataTypes.ENUM('origen', 'destino'),
+            allowNull: true
         }
     },
     {
@@ -58,4 +68,14 @@ Movement.belongsTo(Account, {
 Account.hasMany(Movement, {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE'
-}) 
+})
+
+Movement.belongsTo(Transfer, {
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE'
+})
+
+Transfer.hasMany(Movement, {
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE'
+})

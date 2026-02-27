@@ -3,6 +3,7 @@ import { Category } from '../models/category.js';
 import { Movement } from '../models/movement.js';
 import { sequelize } from '../models/index.js';
 import { Account } from '../models/account.js';
+import { Transfer } from '../models/transfer.js';
 
 export const deleteMovement = async (req, res) => {
   try {
@@ -81,25 +82,32 @@ export const getBalance = async (req, res) => {
 
     const UserId = req.user.id;
 
-    const { startDate, endDate } = req.query
+    const { startDate, endDate, accountId } = req.query
+
+    const whereBase = {
+      UserId,
+      date: {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      },
+      ...(accountId ? { AccountId: accountId } : {})
+    }
+
+    const balanceWhere = {
+      ...whereBase,
+      isTransfer: false
+    }
 
     const totalIngreso = await Movement.sum('amount', {
       where: {
-        UserId,
-        type: 'ingreso',
-        date: {
-          [Op.between]: [new Date(startDate), new Date(endDate)]
-        }
+        ...balanceWhere,
+        type: 'ingreso'
       }
     })
 
     const totalGasto = await Movement.sum('amount', {
       where: {
-        UserId,
-        type: 'gasto',
-        date: {
-          [Op.between]: [new Date(startDate), new Date(endDate)]
-        }
+        ...balanceWhere,
+        type: 'gasto'
       }
     })
 
@@ -163,28 +171,43 @@ export const getByDay = async (req, res) => {
       baseWhere.AccountId = AccountId
     }
 
-    const includeOptions = [{
-      model: Category,
-      attributes: ['name', 'icon'],
-      ...(categoryId ? { where: { id: categoryId } } : {})
-    },
-    {
-      model: Account,
-      attributes: ['name', 'type'],
-      ...(AccountId ? { where: { id: AccountId } } : {})
-    }];
+    const includeOptions = [
+      {
+        model: Category,
+        attributes: ['name', 'icon'],
+        ...(categoryId ? { where: { id: categoryId } } : {})
+      },
+      {
+        model: Account,
+        attributes: ['name', 'type'],
+        ...(AccountId ? { where: { id: AccountId } } : {})
+      },
+      {
+        model: Transfer,
+        attributes: ['id', 'fromAccountId', 'toAccountId', 'date'],
+        include: [
+          { model: Account, as: 'fromAccount', attributes: ['id', 'name', 'type'] },
+          { model: Account, as: 'toAccount', attributes: ['id', 'name', 'type'] }
+        ]
+      }
+    ]
 
     // Configuración de zona horaria
     const timeZone = tz && isValidTimeZone(tz) ? tz : '+00:00';
 
-    const localDateLiteral = sequelize.literal(`DATE(CONVERT_TZ(\`date\`, '+00:00', '${timeZone}'))`);
+    const localDateLiteral = sequelize.literal(`DATE(CONVERT_TZ(\`Movement\`.\`date\`, '+00:00', '${timeZone}'))`);
 
     // --- START OF REFACTORED LOGIC ---
+
+    const baseWhereForBalance = {
+      ...baseWhere,
+      isTransfer: false
+    }
 
     // Consultas para totales con filtros
     const sumQuery = (typeFilter) => ({
       where: {
-        ...baseWhere,
+        ...baseWhereForBalance,
         ...(typeFilter ? { type: typeFilter } : {})
       }
     });
