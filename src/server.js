@@ -62,9 +62,9 @@ app.get(/\/(.*)/, (req, res) => {
 const startServer = async () => {
     //await testConnection()
     try {
-        await sequelize.sync({ alter: true });
-        await sequelize.sync()  // crea tablas si no existen
-        //await sequelize.authenticate()
+        //await sequelize.sync({ alter: true });
+        //await sequelize.sync()  // crea tablas si no existen
+        await sequelize.authenticate()
         console.log('Conexion con la DB establecida')
     } catch (error) {
         console.error('Error de conexion a DB', error);
