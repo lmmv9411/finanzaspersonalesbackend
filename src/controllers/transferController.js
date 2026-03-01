@@ -28,11 +28,16 @@ export const createTransfer = async (req, res) => {
 
     try {
         const UserId = req.user.id
-        const { fromAccountId, toAccountId, amount, description } = req.body
+        const { fromAccountId, toAccountId, amount, description, date } = req.body
 
         if (!fromAccountId || !toAccountId || !amount) {
             await trx.rollback()
             return res.status(400).json({ error: 'fromAccountId, toAccountId y amount son obligatorios' })
+        }
+
+        if (date && isNaN(new Date(date).getTime())) {
+            await trx.rollback()
+            return res.status(400).json({ error: 'Fecha inválida' })
         }
 
         if (Number(amount) <= 0) {
@@ -61,13 +66,23 @@ export const createTransfer = async (req, res) => {
             return res.status(409).json({ error: 'Saldo insuficiente en la cuenta origen' })
         }
 
+        let transferDate;
+
+        if (date) {
+            transferDate = new Date(date)
+            if (isNaN(transferDate.getTime())) {
+                await trx.rollback()
+                return res.status(400).json({ error: 'Fecha inválida' })
+            }
+        }
 
         const transfer = await Transfer.create({
             UserId,
             fromAccountId,
             toAccountId,
             amount,
-            description
+            description: description?.trim() || `Transferencia entre cuentas`,
+            ...(transferDate ? { date: transferDate } : {})
         }, { transaction: trx })
 
         await Movement.create({
@@ -79,6 +94,7 @@ export const createTransfer = async (req, res) => {
             type: 'gasto',
             amount,
             description: description?.trim() || `Transferencia a ${toAccount.name}`,
+            ...(transferDate ? { date: transferDate } : {})
         }, { transaction: trx })
 
         await Movement.create({
@@ -90,6 +106,7 @@ export const createTransfer = async (req, res) => {
             type: 'ingreso',
             amount,
             description: description?.trim() || `Transferencia desde ${fromAccount.name}`,
+            ...(transferDate ? { date: transferDate } : {})
         }, { transaction: trx })
 
         await trx.commit()
