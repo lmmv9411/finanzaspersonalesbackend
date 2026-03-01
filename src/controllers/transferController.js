@@ -159,3 +159,51 @@ export const getTransfers = async (req, res) => {
         return res.status(500).json({ error: error.message })
     }
 }
+
+export const deleteTransfer = async (req, res) => {
+    const trx = await sequelize.transaction()
+
+    try {
+        const UserId = req.user.id
+        const { id } = req.params
+
+        const transfer = await Transfer.findOne({ where: { id, UserId }, transaction: trx })
+
+        if (!transfer) {
+            await trx.rollback()
+            return res.status(404).json({ error: 'Transferencia no encontrada' })
+        }
+
+        await Movement.destroy({ where: { TransferId: id }, transaction: trx })
+        await transfer.destroy({ transaction: trx })
+
+        await trx.commit()
+        return res.json({ message: 'Transferencia eliminada correctamente' })
+    } catch (error) {
+        await trx.rollback()
+        return res.status(500).json({ error: error.message })
+    }
+}
+
+export const getTransferById = async (req, res) => {
+    try {
+        const UserId = req.user.id
+        const { id } = req.params
+
+        const transfer = await Transfer.findOne({
+            where: { id, UserId },
+            include: [
+                { model: Account, as: 'fromAccount', attributes: ['id', 'name', 'type'] },
+                { model: Account, as: 'toAccount', attributes: ['id', 'name', 'type'] }
+            ]
+        })
+
+        if (!transfer) {
+            return res.status(404).json({ error: 'Transferencia no encontrada' })
+        }
+
+        return res.json(transfer)
+    } catch (error) {
+        return res.status(500).json({ error: error.message })
+    }
+}   
