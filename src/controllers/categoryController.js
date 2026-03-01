@@ -29,13 +29,14 @@ export const createCategory = async (req, res) => {
 export const updateCategory = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, icon, type } = req.body;        
+        const { name, icon, type } = req.body;
+        const UserId = req.user.id;
 
         if (!name?.trim() || !icon?.trim() || !type?.trim()) {
             return res.status(400).json({ error: 'Campos vacíos!' })
         }
 
-        const category = await Category.findByPk(id);
+        const category = await Category.findOne({ where: { id, UserId } });
 
         if (!category) {
             return res.status(404).json({ error: 'Category not found' });
@@ -57,7 +58,10 @@ export const updateCategory = async (req, res) => {
 export const deleteCategory = async (req, res) => {
     try {
         const { id } = req.params;
-        const category = await Category.findByPk(id);
+
+        const UserId = req.user.id;
+        const category = await Category.findOne({ where: { id, UserId } });
+
         if (!category) {
             return res.status(404).json({ error: 'Category not found' });
         }
@@ -76,7 +80,10 @@ export const deleteCategory = async (req, res) => {
 export const getCategoryById = async (req, res) => {
     try {
         const { id } = req.params;
-        const category = await Category.findByPk(id);
+        const UserId = req.user.id;
+
+        const category = await Category.findOne({ where: { id, UserId } });
+
         if (!category) {
             return res.status(404).json({ error: 'Category not found' });
         }

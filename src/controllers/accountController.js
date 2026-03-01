@@ -11,13 +11,13 @@ export const getAllAccounts = async (req, res) => {
         })
 
         const accountsWithBalance = await Promise.all(accounts.map(async (account) => {
-            
+
             const totalIngreso = await Movement.sum('amount', {
-                where: { userId, AccountId: account.id, type: 'ingreso' }
+                where: { UserId: userId, AccountId: account.id, type: 'ingreso' }
             })
 
             const totalGasto = await Movement.sum('amount', {
-                where: { userId, AccountId: account.id, type: 'gasto' }
+                where: { UserId: userId, AccountId: account.id, type: 'gasto' }
             })
 
             const currentBalance = Number(account.initialBalance || 0) + (totalIngreso || 0) - (totalGasto || 0)
@@ -87,14 +87,14 @@ export const createAccount = async (req, res) => {
     }
 }
 
-export const updateAccount = async (req, res) => {              
+export const updateAccount = async (req, res) => {
     try {
         const { id } = req.params
         const userId = req.user.id
         const { name, type, initialBalance, description } = req.body
         const account = await Account.findOne({
             where: { id, UserId: userId }
-        })          
+        })
         if (!account) {
             return res.status(404).json({ message: 'Cuenta no encontrada' })
         }
