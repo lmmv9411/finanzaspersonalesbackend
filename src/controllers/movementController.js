@@ -139,6 +139,9 @@ export const getByDay = async (req, res) => {
     const fStartDate = new Date(startDate);
     const fEndDate = new Date(endDate);
 
+    // Configuración de zona horaria
+    const timeZone = tz && isValidTimeZone(tz) ? tz : '+00:00';
+
     if (fEndDate < fStartDate) {
       return res.status(400).json({ error: 'La fecha final debe ser posterior a la inicial' })
     }
@@ -152,10 +155,19 @@ export const getByDay = async (req, res) => {
 
     const offset = (page - 1) * pageSize
 
+    // Convertimos rango LOCAL → UTC
+    const utcStartLiteral = sequelize.literal(
+      `CONVERT_TZ('${startDate}', '${timeZone}', '+00:00')`
+    );
+
+    const utcEndLiteral = sequelize.literal(
+      `CONVERT_TZ('${endDate}', '${timeZone}', '+00:00')`
+    );
+
     const baseWhere = {
       UserId,
       date: {
-        [Op.between]: [fStartDate, fEndDate]
+        [Op.between]: [utcStartLiteral, utcEndLiteral]
       }
     }
 
@@ -192,8 +204,6 @@ export const getByDay = async (req, res) => {
       }
     ]
 
-    // Configuración de zona horaria
-    const timeZone = tz && isValidTimeZone(tz) ? tz : '+00:00';
 
     const localDateLiteral = sequelize.literal(`DATE(CONVERT_TZ(\`Movement\`.\`date\`, '+00:00', '${timeZone}'))`);
 
