@@ -82,12 +82,41 @@ export const getBalance = async (req, res) => {
 
     const UserId = req.user.id;
 
-    const { startDate, endDate, accountId } = req.query
+    const { startDate, endDate, accountId, tz } = req.query
+
+    if (!startDate?.trim() || !endDate?.trim()) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
+    }
+
+    if (!esFechaValida(startDate)) {
+      return res.status(400).json({ error: 'Fecha de inicio inválida' })
+    }
+
+    if (!esFechaValida(endDate)) {
+      return res.status(400).json({ error: 'Fecha de fin inválida' })
+    }
+
+    isValidTimeZone(tz) || (tz = '+00:00');
+
+    const fStartDate = new Date(startDate);
+    const fEndDate = new Date(endDate);
+
+    if (fEndDate < fStartDate) {
+      return res.status(400).json({ error: 'La fecha final debe ser posterior a la inicial' })
+    }
+
+    const utcStartLiteral = sequelize.literal(
+      `CONVERT_TZ('${startDate}', '${tz}', '+00:00')`
+    );
+
+    const utcEndLiteral = sequelize.literal(
+      `CONVERT_TZ('${endDate}', '${tz}', '+00:00')`
+    );
 
     const whereBase = {
       UserId,
       date: {
-        [Op.between]: [new Date(startDate), new Date(endDate)]
+        [Op.between]: [utcStartLiteral, utcEndLiteral]
       },
       ...(accountId ? { AccountId: accountId } : {})
     }
@@ -119,7 +148,7 @@ export const getBalance = async (req, res) => {
   }
 }
 
-function isValidTimeZone(tz) {
+export const isValidTimeZone = (tz) => {
   return /^[+-]\d{2}:\d{2}$/.test(tz);
 }
 
@@ -388,6 +417,6 @@ export const updateMovement = async (req, res) => {
   }
 }
 
-function esFechaValida(fechaString) {
+export const esFechaValida = (fechaString) => {
   return !isNaN(Date.parse(fechaString));
 }

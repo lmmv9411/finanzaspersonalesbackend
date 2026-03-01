@@ -2,15 +2,41 @@ import { Op } from "sequelize"
 import { Category } from "../models/category.js"
 import { sequelize } from "../models/index.js"
 import { Movement } from "../models/movement.js"
+import { esFechaValida, isValidTimeZone } from "./movementController.js"
 
 export const getTotalByCategory = async (req, res) => {
     try {
-        const { startDate, endDate, accountId } = req.query
+        const { startDate, endDate, accountId, tz } = req.query
         const UserId = req.user.id;
 
         if (!startDate.trim() || !endDate.trim()) {
             return res.status(400).json({ error: 'Todos los campos son obligatorios!' })
         }
+
+        if (!esFechaValida(startDate)) {
+            return res.status(400).json({ error: 'Fecha de inicio inválida' })
+        }
+
+        if (!esFechaValida(endDate)) {
+            return res.status(400).json({ error: 'Fecha de fin inválida' })
+        }
+
+        isValidTimeZone(tz) || (tz = '+00:00');
+
+        const fStartDate = new Date(startDate);
+        const fEndDate = new Date(endDate);
+
+        if (fEndDate < fStartDate) {
+            return res.status(400).json({ error: 'La fecha final debe ser posterior a la inicial' })
+        }
+
+        const utcStartLiteral = sequelize.literal(
+            `CONVERT_TZ('${startDate}', '${tz}', '+00:00')`
+        );
+
+        const utcEndLiteral = sequelize.literal(
+            `CONVERT_TZ('${endDate}', '${tz}', '+00:00')`
+        );
 
         const totalGastoByCategory = await Movement.findAll({
             attributes: [
@@ -20,7 +46,7 @@ export const getTotalByCategory = async (req, res) => {
             where: {
                 UserId,
                 date: {
-                    [Op.between]: [new Date(startDate), new Date(endDate)]
+                    [Op.between]: [utcStartLiteral, utcEndLiteral]
                 },
                 type: 'gasto',
                 ...(accountId ? { AccountId: accountId } : {})
@@ -40,7 +66,7 @@ export const getTotalByCategory = async (req, res) => {
             where: {
                 UserId,
                 date: {
-                    [Op.between]: [new Date(startDate), new Date(endDate)]
+                    [Op.between]: [utcStartLiteral, utcEndLiteral]
                 },
                 type: 'ingreso',
                 ...(accountId ? { AccountId: accountId } : {})
