@@ -87,7 +87,9 @@ export const getTotalByCategory = async (req, res) => {
 export const getMonthly = async (req, res) => {
 
     const UserId = req.user.id;
-    const { AccountId } = req.query
+    const { AccountId, tz } = req.query
+
+    isValidTimeZone(tz) || (tz = '+00:00');
 
     const currentYear = new Date().getFullYear();
     const startDate = new Date(`${currentYear}-01-01`);
@@ -96,7 +98,7 @@ export const getMonthly = async (req, res) => {
         const [ingresos, gastos] = await Promise.all([
             Movement.findAll({
                 attributes: [
-                    [sequelize.fn('DATE_FORMAT', sequelize.col('date'), '%Y-%m'), 'month'],
+                    [sequelize.fn('DATE_FORMAT', sequelize.fn('CONVERT_TZ', sequelize.col('date'), '+00:00', tz), '%Y-%m'), 'month'],
                     [sequelize.fn('SUM', sequelize.col('amount')), 'total']
                 ],
                 where: {
@@ -111,7 +113,7 @@ export const getMonthly = async (req, res) => {
             }),
             Movement.findAll({
                 attributes: [
-                    [sequelize.fn('DATE_FORMAT', sequelize.col('date'), '%Y-%m'), 'month'],
+                    [sequelize.fn('DATE_FORMAT', sequelize.fn('CONVERT_TZ', sequelize.col('date'), '+00:00', tz), '%Y-%m'), 'month'],
                     [sequelize.fn('SUM', sequelize.col('amount')), 'total']
                 ],
                 where: {
