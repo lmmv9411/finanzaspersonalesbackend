@@ -1,0 +1,1 @@
+import{i as t}from"./index-CI93W9U1.js";const a=()=>t.get("/accounts"),e=c=>t.post("/accounts",c),n=(c,o)=>t.put(`/accounts/${c}`,o),u=c=>t.delete(`/accounts/${c}`);export{e as c,u as d,a as g,n as u};
