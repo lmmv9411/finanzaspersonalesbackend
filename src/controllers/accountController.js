@@ -38,20 +38,6 @@ export const getAllAccounts = async (req, res) => {
     }
 }
 
-/*export const getAllAccounts = async (req, res) => {
-    try {
-        const userId = req.user.id
-        const accounts = await Account.findAll({
-            where: { UserId: userId },
-            order: [['createdAt', 'DESC']]
-        })
-        res.json(accounts)
-    } catch (error) {
-        console.error('Error al obtener las cuentas:', error)
-        res.status(500).json({ message: 'Error al obtener las cuentas' })
-    }
-}*/
-
 export const getAccountById = async (req, res) => {
     try {
         const { id } = req.params
@@ -62,7 +48,19 @@ export const getAccountById = async (req, res) => {
         if (!account) {
             return res.status(404).json({ message: 'Cuenta no encontrada' })
         }
-        res.json(account)
+
+        const [totalIngreso, totalGasto] = await Promise.all([
+            Movement.sum('amount', {
+                where: { UserId: userId, AccountId: account.id, type: 'ingreso' }
+            }),
+            Movement.sum('amount', {
+                where: { UserId: userId, AccountId: account.id, type: 'gasto' }
+            })
+        ])
+
+        const currentBalance = Number(account.initialBalance || 0) + (totalIngreso || 0) - (totalGasto || 0)
+
+        res.json({ ...account.toJSON(), totalGasto, totalIngreso, currentBalance })
     } catch (error) {
         console.error('Error al obtener la cuenta:', error)
         res.status(500).json({ message: 'Error al obtener la cuenta' })

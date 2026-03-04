@@ -233,15 +233,11 @@ export const getByDay = async (req, res) => {
       }
     ]
 
-
     const localDateLiteral = sequelize.literal(`DATE(CONVERT_TZ(\`Movement\`.\`date\`, '+00:00', '${timeZone}'))`);
 
-    // --- START OF REFACTORED LOGIC ---
+    let baseWhereForBalance;
 
-    const baseWhereForBalance = {
-      ...baseWhere,
-      isTransfer: false
-    }
+    baseWhereForBalance = { ...baseWhere, isTransfer: false }
 
     // Consultas para totales con filtros
     const sumQuery = (typeFilter) => ({
