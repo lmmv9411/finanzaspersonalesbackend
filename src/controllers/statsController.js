@@ -48,6 +48,7 @@ export const getTotalByCategory = async (req, res) => {
                 date: {
                     [Op.between]: [utcStartLiteral, utcEndLiteral]
                 },
+                isTransfer: false,
                 type: 'gasto',
                 ...(accountId ? { AccountId: accountId } : {})
             },
@@ -68,6 +69,7 @@ export const getTotalByCategory = async (req, res) => {
                 date: {
                     [Op.between]: [utcStartLiteral, utcEndLiteral]
                 },
+                isTransfer: false,
                 type: 'ingreso',
                 ...(accountId ? { AccountId: accountId } : {})
             },
