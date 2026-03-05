@@ -1,0 +1,1 @@
+import{i as t}from"./index-BXFL_488.js";const a=()=>t.get("/accounts"),n=c=>t.get(`/accounts/${c}`),e=c=>t.post("/accounts",c),u=(c,o)=>t.put(`/accounts/${c}`,o),p=c=>t.delete(`/accounts/${c}`);export{a,e as c,p as d,n as g,u};
