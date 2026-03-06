@@ -38,29 +38,46 @@ export const getAllAccounts = async (req, res) => {
     }
 }
 
+const getAccountCurrentBalance = async (userId, accountId) => {
+
+    const [account, totalIngreso, totalGasto] = await Promise.all([
+
+        Account.findOne({ where: { id: accountId, UserId: userId } }),
+
+        Movement.sum('amount', {
+            where: { UserId: userId, AccountId: accountId, type: 'ingreso' }
+        }),
+
+        Movement.sum('amount', {
+            where: { UserId: userId, AccountId: accountId, type: 'gasto' }
+        })
+    ])
+
+    if (!account) {
+        return null
+    }
+
+    return {
+        ...account.toJSON(),
+        totalGasto: Number(totalGasto) || 0,
+        totalIngreso: Number(totalIngreso) || 0,
+        currentBalance: Number(account.initialBalance || 0) + (Number(totalIngreso) || 0) - (Number(totalGasto) || 0)
+    }
+}
+
 export const getAccountById = async (req, res) => {
     try {
         const { id } = req.params
         const userId = req.user.id
-        const account = await Account.findOne({
-            where: { id, UserId: userId }
-        })
-        if (!account) {
+
+        const balanceData = await getAccountCurrentBalance(userId, id)
+
+        if (!balanceData) {
             return res.status(404).json({ message: 'Cuenta no encontrada' })
         }
 
-        const [totalIngreso, totalGasto] = await Promise.all([
-            Movement.sum('amount', {
-                where: { UserId: userId, AccountId: account.id, type: 'ingreso' }
-            }),
-            Movement.sum('amount', {
-                where: { UserId: userId, AccountId: account.id, type: 'gasto' }
-            })
-        ])
+        res.json(balanceData)
 
-        const currentBalance = Number(account.initialBalance || 0) + (totalIngreso || 0) - (totalGasto || 0)
-
-        res.json({ ...account.toJSON(), totalGasto, totalIngreso, currentBalance })
     } catch (error) {
         console.error('Error al obtener la cuenta:', error)
         res.status(500).json({ message: 'Error al obtener la cuenta' })
@@ -123,5 +140,60 @@ export const deleteAccount = async (req, res) => {
     } catch (error) {
         console.error('Error al eliminar la cuenta:', error)
         res.status(500).json({ message: 'Error al eliminar la cuenta' })
+    }
+}
+
+export const reconcileAccountBalance = async (req, res) => {
+    try {
+        const { id } = req.params
+        const userId = req.user.id
+        const { realBalance, description, date } = req.body
+
+        if (realBalance === undefined || realBalance === null || Number.isNaN(Number(realBalance))) {
+            return res.status(400).json({ message: 'realBalance es obligatorio y debe ser numérico' })
+        }
+
+        if (date && Number.isNaN(new Date(date).getTime())) {
+            return res.status(400).json({ message: 'Fecha inválida' })
+        }
+
+        const balanceData = await getAccountCurrentBalance(userId, id)
+        if (!balanceData) {
+            return res.status(404).json({ message: 'Cuenta no encontrada' })
+        }
+
+        const targetBalance = Number(realBalance)
+        const delta = Number((targetBalance - balanceData.currentBalance).toFixed(2))
+
+        if (delta === 0) {
+            return res
+                .status(400)
+                .json({
+                    message: 'No hay diferencia para ajustar',
+                    adjustmentCreated: false,
+                    currentBalance: balanceData.currentBalance
+                })
+        }
+
+        const adjustmentMovement = await Movement.create({
+            type: delta > 0 ? 'ingreso' : 'gasto',
+            amount: Math.abs(delta),
+            description: `[AJUSTE] ${description?.trim() || 'Ajuste manual de saldo.'}`,
+            AccountId: balanceData.id,
+            UserId: userId,
+            ...(date ? { date: new Date(date) } : {})
+        })
+
+        return res.status(201).json({
+            message: 'Ajuste aplicado correctamente',
+            adjustmentCreated: true,
+            previousBalance: balanceData.currentBalance,
+            currentBalance: targetBalance,
+            differenceApplied: delta,
+            movement: adjustmentMovement
+        })
+    } catch (error) {
+        console.error('Error al reconciliar saldo de la cuenta:', error)
+        return res.status(500).json({ message: 'Error al reconciliar saldo de la cuenta' })
     }
 }

@@ -5,6 +5,8 @@ import { sequelize } from '../models/index.js';
 import { Account } from '../models/account.js';
 import { Transfer } from '../models/transfer.js';
 
+const BALANCE_ADJUSTMENT_PREFIX = '[AJUSTE]'
+
 export const deleteMovement = async (req, res) => {
   try {
 
@@ -76,6 +78,11 @@ export const createMovement = async (req, res) => {
   }
 }
 
+// Convertimos rango LOCAL → UTC
+const toUtc = (date, timeZone) => (
+  sequelize.literal(`CONVERT_TZ('${date}', '${timeZone}', '+00:00')`)
+)
+
 export const getBalance = async (req, res) => {
 
   try {
@@ -105,43 +112,30 @@ export const getBalance = async (req, res) => {
       return res.status(400).json({ error: 'La fecha final debe ser posterior a la inicial' })
     }
 
-    const utcStartLiteral = sequelize.literal(
-      `CONVERT_TZ('${startDate}', '${tz}', '+00:00')`
-    );
+    const utcStartLiteral = toUtc(startDate, tz)
 
-    const utcEndLiteral = sequelize.literal(
-      `CONVERT_TZ('${endDate}', '${tz}', '+00:00')`
-    );
+    const utcEndLiteral = toUtc(endDate, tz)
 
     const whereBase = {
       UserId,
       date: {
         [Op.between]: [utcStartLiteral, utcEndLiteral]
       },
-      ...(accountId ? { AccountId: accountId } : {})
+      ...(accountId ? { AccountId: accountId } : {}),
+      isTransfer: false,
+      description: { [Op.notLike]: `${BALANCE_ADJUSTMENT_PREFIX}%` }
     }
 
-    const balanceWhere = {
-      ...whereBase,
-      isTransfer: false
-    }
+    const [totalIngreso, totalGasto] = await Promise.all([
+      Movement.sum('amount', { where: { ...whereBase, type: 'ingreso' } }),
+      Movement.sum('amount', { where: { ...whereBase, type: 'gasto' } })
+    ])
 
-    const totalIngreso = await Movement.sum('amount', {
-      where: {
-        ...balanceWhere,
-        type: 'ingreso'
-      }
-    })
+    const ingreso = totalIngreso || 0
+    const gasto = totalGasto || 0
 
-    const totalGasto = await Movement.sum('amount', {
-      where: {
-        ...balanceWhere,
-        type: 'gasto'
-      }
-    })
-
-    const balance = totalIngreso - totalGasto
-    res.json({ balance, totalIngreso, totalGasto })
+    const balance = ingreso - gasto
+    res.json({ balance, totalIngreso: ingreso, totalGasto: gasto })
 
   } catch (error) {
     res.status(500).json({ error: error.message })
@@ -169,7 +163,7 @@ export const getByDay = async (req, res) => {
     const fEndDate = new Date(endDate);
 
     // Configuración de zona horaria
-    const timeZone = tz && isValidTimeZone(tz) ? tz : '+00:00';
+    isValidTimeZone(tz) || (tz = '+00:00');
 
     if (fEndDate < fStartDate) {
       return res.status(400).json({ error: 'La fecha final debe ser posterior a la inicial' })
@@ -184,14 +178,9 @@ export const getByDay = async (req, res) => {
 
     const offset = (page - 1) * pageSize
 
-    // Convertimos rango LOCAL → UTC
-    const utcStartLiteral = sequelize.literal(
-      `CONVERT_TZ('${startDate}', '${timeZone}', '+00:00')`
-    );
+    const utcStartLiteral = toUtc(startDate, tz)
 
-    const utcEndLiteral = sequelize.literal(
-      `CONVERT_TZ('${endDate}', '${timeZone}', '+00:00')`
-    );
+    const utcEndLiteral = toUtc(endDate, tz)
 
     const baseWhere = {
       UserId,
@@ -233,11 +222,13 @@ export const getByDay = async (req, res) => {
       }
     ]
 
-    const localDateLiteral = sequelize.literal(`DATE(CONVERT_TZ(\`Movement\`.\`date\`, '+00:00', '${timeZone}'))`);
+    const localDateLiteral = sequelize.literal(`DATE(CONVERT_TZ(\`Movement\`.\`date\`, '+00:00', '${tz}'))`);
 
-    let baseWhereForBalance;
-
-    baseWhereForBalance = { ...baseWhere, isTransfer: false }
+    const baseWhereForBalance = {
+      ...baseWhere,
+      isTransfer: false,
+      description: { [Op.notLike]: `${BALANCE_ADJUSTMENT_PREFIX}%` }
+    }
 
     // Consultas para totales con filtros
     const sumQuery = (typeFilter) => ({

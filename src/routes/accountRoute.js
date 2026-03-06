@@ -5,6 +5,7 @@ import {
   deleteAccount,
   getAccountById,
   getAllAccounts,
+  reconcileAccountBalance,
   updateAccount
 } from '../controllers/accountController.js'
 
@@ -17,5 +18,6 @@ router.get('/:id', getAccountById)
 router.post('/', createAccount)
 router.put('/:id', updateAccount)
 router.delete('/:id', deleteAccount)
+router.post('/:id/reconcile', reconcileAccountBalance)
 
 export default router
