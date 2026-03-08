@@ -1,0 +1,1 @@
+import{i as t}from"./index-Ck53mLvV.js";const n=()=>t.get("/accounts"),a=c=>t.get(`/accounts/${c}`),e=c=>t.post("/accounts",c),u=(c,o)=>t.put(`/accounts/${c}`,o),p=c=>t.delete(`/accounts/${c}`),r=(c,o)=>t.post(`/accounts/${c}/reconcile`,o);export{n as a,e as c,p as d,a as g,r,u};

@@ -4,6 +4,8 @@ import { sequelize } from "../models/index.js"
 import { Movement } from "../models/movement.js"
 import { esFechaValida, isValidTimeZone } from "./movementController.js"
 
+const BALANCE_ADJUSTMENT_PREFIX = '[AJUSTE]'
+
 export const getTotalByCategory = async (req, res) => {
     try {
         const { startDate, endDate, accountId, tz } = req.query
@@ -38,50 +40,39 @@ export const getTotalByCategory = async (req, res) => {
             `CONVERT_TZ('${endDate}', '${tz}', '+00:00')`
         );
 
-        const totalGastoByCategory = await Movement.findAll({
-            attributes: [
-                'CategoryId',
-                [sequelize.fn('SUM', sequelize.col('amount')), 'total']
-            ],
-            where: {
-                UserId,
-                date: {
-                    [Op.between]: [utcStartLiteral, utcEndLiteral]
-                },
-                isTransfer: false,
-                type: 'gasto',
-                ...(accountId ? { AccountId: accountId } : {})
-            },
-            group: ['CategoryId'],
-            include: {
-                model: Category,
-                attributes: ['name']
-            }
-        })
+        const sql = (type) => (
+            {
+                attributes: [
+                    'CategoryId',
+                    [sequelize.fn('SUM', sequelize.col('amount')), 'total']
+                ],
+                where: {
+                    UserId,
+                    date: {
+                        [Op.between]: [utcStartLiteral, utcEndLiteral]
+                    },
+                    isTransfer: false,
+                    description: { [Op.notLike]: `${BALANCE_ADJUSTMENT_PREFIX}%` },
+                    type,
+                    ...(accountId ? { AccountId: accountId } : {})
 
-        const totalIngresoByCategory = await Movement.findAll({
-            attributes: [
-                'CategoryId',
-                [sequelize.fn('SUM', sequelize.col('amount')), 'total']
-            ],
-            where: {
-                UserId,
-                date: {
-                    [Op.between]: [utcStartLiteral, utcEndLiteral]
                 },
-                isTransfer: false,
-                type: 'ingreso',
-                ...(accountId ? { AccountId: accountId } : {})
-            },
-            group: ['CategoryId'],
-            include: {
-                model: Category,
-                attributes: ['name']
+                include: {
+                    model: Category,
+                    attributes: ['name']
+                },
+                group: ['CategoryId']
             }
-        })
+        )
+
+        const [totalGastoByCategory, totalIngresoByCategory] = await Promise.all([
+            Movement.findAll(sql('gasto')),
+            Movement.findAll(sql('ingreso'))
+        ])
 
         res.json({ totalGastoByCategory, totalIngresoByCategory })
     } catch (error) {
+        console.error(error)
         res.status(500).json({ error: error.message })
     }
 }
@@ -107,6 +98,8 @@ export const getMonthly = async (req, res) => {
                     UserId,
                     type: 'ingreso',
                     date: { [Op.gte]: startDate },
+                    isTransfer: false,
+                    description: { [Op.notLike]: `${BALANCE_ADJUSTMENT_PREFIX}%` },
                     ...(AccountId ? { AccountId } : {})
                 },
                 group: ['month'],
@@ -122,6 +115,8 @@ export const getMonthly = async (req, res) => {
                     UserId,
                     type: 'gasto',
                     date: { [Op.gte]: startDate },
+                    isTransfer: false,
+                    description: { [Op.notLike]: `${BALANCE_ADJUSTMENT_PREFIX}%` },
                     ...(AccountId ? { AccountId } : {})
                 },
                 group: ['month'],
